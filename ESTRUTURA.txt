@@ -1,0 +1,131 @@
+📦 Despesas/
+│
+├── 📄 Arquivos de Configuração
+│   ├── package.json              # Dependências do projeto
+│   ├── vite.config.js            # Configuração do Vite
+│   ├── tailwind.config.js        # Configuração do Tailwind
+│   ├── postcss.config.js         # PostCSS
+│   ├── .eslintrc.cjs             # ESLint
+│   ├── .env.example              # Exemplo de variáveis de ambiente
+│   ├── .env.local                # Suas credenciais (NÃO COMMITAR)
+│   └── .gitignore                # Arquivos ignorados pelo Git
+│
+├── 🔒 Firebase
+│   └── firestore.rules           # Regras de segurança do Firestore
+│
+├── 📚 Documentação
+│   ├── README.md                 # Documentação completa
+│   ├── QUICKSTART.md             # Início rápido (5 min)
+│   ├── DEPLOY.md                 # Guia de deploy
+│   ├── CHANGELOG.md              # Histórico de mudanças
+│   └── ESTRUTURA.txt             # Este arquivo
+│
+├── 🌐 Web
+│   └── index.html                # HTML principal
+│
+└── 📁 src/
+    │
+    ├── 🎯 Entry Points
+    │   ├── main.jsx              # Ponto de entrada da aplicação
+    │   ├── App.jsx               # Componente principal
+    │   └── index.css             # Estilos globais + Tailwind
+    │
+    ├── 🧩 components/            # Componentes React
+    │   ├── LoginScreen.jsx       # Tela de login
+    │   ├── Sidebar.jsx           # Menu lateral
+    │   ├── MonthSelector.jsx     # Seletor de mês
+    │   ├── Dashboard.jsx         # Dashboard principal
+    │   ├── IncomeView.jsx        # Gestão de receitas
+    │   ├── MonthlyExpensesView.jsx # Despesas mensais
+    │   ├── CreditCardView.jsx    # Cartão de crédito
+    │   ├── YearlyView.jsx        # Visão anual
+    │   └── VacationFundView.jsx  # Fundo de férias
+    │
+    ├── 🎣 hooks/                 # Custom Hooks
+    │   ├── useAuth.js            # Hook de autenticação
+    │   └── useFirestore.js       # Hooks do Firestore
+    │
+    ├── 🌍 contexts/              # Context API
+    │   └── ToastContext.jsx      # Sistema de notificações
+    │
+    ├── ⚙️ services/              # Lógica de Negócio
+    │   ├── firebase.js           # Configuração Firebase
+    │   ├── calculations.js       # Cálculos financeiros
+    │   └── seedData.js           # Dados iniciais
+    │
+    └── 🛠️ utils/                 # Funções Utilitárias
+        └── formatters.js         # Formatação de moeda, datas, etc.
+
+
+📊 FLUXO DE DADOS
+═══════════════════════════════════════════════════════════
+
+1. Usuário faz login (useAuth)
+   └─> Firebase Authentication
+
+2. App.jsx carrega dados (useFirestore)
+   └─> Firestore Database
+       ├─> incomes
+       ├─> expenses
+       ├─> credit_expenses
+       ├─> vacation_incomes
+       ├─> vacation_expenses
+       └─> invoice_totals
+
+3. Componentes exibem e editam dados
+   └─> useFirestoreOperations
+       └─> Salva no Firestore
+           └─> Atualização em tempo real (onSnapshot)
+
+
+🔐 SEGURANÇA
+═══════════════════════════════════════════════════════════
+
+✅ Credenciais em variáveis de ambiente (.env.local)
+✅ Security Rules do Firestore (firestore.rules)
+✅ Validação de dados (calculations.js)
+✅ Autenticação obrigatória
+✅ Isolamento por usuário
+
+
+🎨 STACK TECNOLÓGICA
+═══════════════════════════════════════════════════════════
+
+Frontend:
+  • React 18 (Framework)
+  • Tailwind CSS (Estilos)
+  • Lucide React (Ícones)
+
+Backend:
+  • Firebase Authentication (Login)
+  • Cloud Firestore (Banco de dados)
+
+Build/Deploy:
+  • Vite (Build tool)
+  • Vercel (Hosting)
+
+
+📦 PRINCIPAIS DEPENDÊNCIAS
+═══════════════════════════════════════════════════════════
+
+Produção:
+  • react: ^18.2.0
+  • react-dom: ^18.2.0
+  • firebase: ^10.7.1
+  • lucide-react: ^0.294.0
+
+Desenvolvimento:
+  • vite: ^5.0.8
+  • tailwindcss: ^3.4.0
+  • @vitejs/plugin-react: ^4.2.1
+
+
+🚀 COMANDOS PRINCIPAIS
+═══════════════════════════════════════════════════════════
+
+npm install          # Instalar dependências
+npm run dev          # Servidor de desenvolvimento
+npm run build        # Build de produção
+npm run preview      # Preview da build
+npm run lint         # Lint do código
+
