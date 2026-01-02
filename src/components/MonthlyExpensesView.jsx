@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, ChevronUp, ChevronDown } from 'lucide-react';
 import MonthSelector from './MonthSelector';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -19,6 +19,15 @@ const MonthlyExpensesView = ({
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
 
+  // Ordenar despesas por campo 'order' (se existir)
+  const sortedExpenses = useMemo(() => {
+    return [...expenses].sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      return orderA - orderB;
+    });
+  }, [expenses]);
+
   const handleAdd = async () => {
     const validation = validateExpense({
       ...newExpense,
@@ -30,11 +39,16 @@ const MonthlyExpensesView = ({
       return;
     }
 
+    const maxOrder = expenses.reduce((max, exp) =>
+      Math.max(max, exp.order !== undefined ? exp.order : 0), 0
+    );
+
     const result = await onSave('expenses', {
       name: newExpense.name,
       value: parseFloat(newExpense.value),
       paidStatus: Array(12).fill(false),
-      overrides: {}
+      overrides: {},
+      order: maxOrder + 1
     });
 
     if (result.success) {
@@ -43,6 +57,28 @@ const MonthlyExpensesView = ({
     } else {
       toast.error(`Erro: ${result.error}`);
     }
+  };
+
+  const moveExpense = async (expense, direction) => {
+    const currentIndex = sortedExpenses.findIndex(e => e.id === expense.id);
+    if (
+      (direction === 'up' && currentIndex === 0) ||
+      (direction === 'down' && currentIndex === sortedExpenses.length - 1)
+    ) {
+      return;
+    }
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const swapExpense = sortedExpenses[newIndex];
+
+    // Trocar os valores de order
+    const currentOrder = expense.order !== undefined ? expense.order : currentIndex;
+    const swapOrder = swapExpense.order !== undefined ? swapExpense.order : newIndex;
+
+    await onSave('expenses', { ...expense, order: swapOrder });
+    await onSave('expenses', { ...swapExpense, order: currentOrder });
+
+    toast.success('Ordem atualizada!');
   };
 
   const togglePaid = async (expense) => {
@@ -124,7 +160,7 @@ const MonthlyExpensesView = ({
           </span>
         </div>
         <div className="divide-y">
-          {expenses.map(expense => {
+          {sortedExpenses.map((expense, index) => {
             const isPaid = expense.paidStatus[selectedMonth];
             const isOverridden =
               expense.overrides && expense.overrides[selectedMonth] !== undefined;
@@ -139,7 +175,35 @@ const MonthlyExpensesView = ({
                   isPaid ? 'bg-emerald-50/30' : ''
                 }`}
               >
-                <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {/* Botões de reordenação */}
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      onClick={() => moveExpense(expense, 'up')}
+                      disabled={index === 0}
+                      className={`p-0.5 rounded transition-colors ${
+                        index === 0
+                          ? 'text-slate-300 cursor-not-allowed'
+                          : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                      }`}
+                      title="Mover para cima"
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <button
+                      onClick={() => moveExpense(expense, 'down')}
+                      disabled={index === sortedExpenses.length - 1}
+                      className={`p-0.5 rounded transition-colors ${
+                        index === sortedExpenses.length - 1
+                          ? 'text-slate-300 cursor-not-allowed'
+                          : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                      }`}
+                      title="Mover para baixo"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                  </div>
+
                   <button
                     onClick={() => togglePaid(expense)}
                     className={`p-2 rounded-full transition-all ${

@@ -1,0 +1,85 @@
+═══════════════════════════════════════════════════════════
+🚀 COMANDOS PARA DEPLOY - COPIE E COLE
+═══════════════════════════════════════════════════════════
+
+📌 PASSO 1: Criar repositório no GitHub
+→ Acesse: https://github.com/new
+→ Nome: despesas-2026
+→ Private ou Public (sua escolha)
+→ NÃO adicione README ou .gitignore
+→ Clique "Create repository"
+→ COPIE o link do repositório
+
+
+📌 PASSO 2: Conectar ao GitHub (cole os comandos abaixo)
+─────────────────────────────────────────────────────────
+
+# SUBSTITUA "SEU-USUARIO" pelo seu usuário do GitHub!
+git remote add origin https://github.com/SEU-USUARIO/despesas-2026.git
+
+git branch -M main
+
+git push -u origin main
+
+─────────────────────────────────────────────────────────
+
+
+📌 PASSO 3: Deploy na Vercel
+→ Acesse: https://vercel.com
+→ Clique "Add New" → "Project"
+→ Conecte com GitHub (se pedir)
+→ Selecione seu repositório "despesas-2026"
+→ Clique "Import"
+
+
+📌 PASSO 4: Adicionar Variáveis de Ambiente na Vercel
+─────────────────────────────────────────────────────────
+COPIE e COLE uma por uma (7 variáveis):
+
+VITE_FIREBASE_API_KEY=AIzaSyBo85fOEKZzAIshCAPIKCs4LTrnuCnRbvg
+
+VITE_FIREBASE_AUTH_DOMAIN=planejamento-2026-82a96.firebaseapp.com
+
+VITE_FIREBASE_PROJECT_ID=planejamento-2026-82a96
+
+VITE_FIREBASE_STORAGE_BUCKET=planejamento-2026-82a96.firebasestorage.app
+
+VITE_FIREBASE_MESSAGING_SENDER_ID=161920317938
+
+VITE_FIREBASE_APP_ID=1:161920317938:web:51b0677afb1a16de23936b
+
+VITE_APP_ID=planejamento-2026
+
+─────────────────────────────────────────────────────────
+
+→ Depois de adicionar todas, clique "Deploy"
+→ Aguarde 2-3 minutos
+→ COPIE o link (ex: despesas-2026.vercel.app)
+
+
+📌 PASSO 5: Configurar Firebase (OBRIGATÓRIO!)
+→ Acesse: https://console.firebase.google.com/
+→ Selecione projeto: planejamento-2026-82a96
+
+5.1 - Autorizar domínio da Vercel:
+  → Authentication → Settings → Authorized domains
+  → Add domain → Cole o link da Vercel
+  → Add
+
+5.2 - Configurar Security Rules:
+  → Firestore Database → Rules
+  → Abra o arquivo "firestore.rules" no VSCode
+  → Copie TODO o conteúdo
+  → Cole no Firebase (substitua tudo)
+  → Publish
+
+
+═══════════════════════════════════════════════════════════
+✅ PRONTO! Acesse seu link da Vercel e teste!
+═══════════════════════════════════════════════════════════
+
+🔄 Para atualizar depois:
+  git add .
+  git commit -m "descrição da mudança"
+  git push
+

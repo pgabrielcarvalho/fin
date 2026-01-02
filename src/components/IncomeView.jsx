@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, RotateCcw } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Trash2, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react';
 import MonthSelector from './MonthSelector';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -20,6 +20,23 @@ const IncomeView = ({
     month: selectedMonth
   });
 
+  // Ordenar receitas por campo 'order' (se existir)
+  const sortedFixedIncomes = useMemo(() => {
+    return [...incomes.filter(i => i.type === 'fixed')].sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      return orderA - orderB;
+    });
+  }, [incomes]);
+
+  const sortedVariableIncomes = useMemo(() => {
+    return [...incomes.filter(i => i.type === 'variable' && i.month === selectedMonth)].sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 999;
+      const orderB = b.order !== undefined ? b.order : 999;
+      return orderA - orderB;
+    });
+  }, [incomes, selectedMonth]);
+
   const handleAdd = async () => {
     const validation = validateIncome({
       ...newIncome,
@@ -31,12 +48,17 @@ const IncomeView = ({
       return;
     }
 
+    const maxOrder = incomes.reduce((max, inc) =>
+      Math.max(max, inc.order !== undefined ? inc.order : 0), 0
+    );
+
     const result = await onSave('incomes', {
       name: newIncome.name,
       value: parseFloat(newIncome.value),
       type: newIncome.type,
       month: newIncome.type === 'variable' ? parseInt(newIncome.month) : null,
-      overrides: {}
+      overrides: {},
+      order: maxOrder + 1
     });
 
     if (result.success) {
@@ -45,6 +67,28 @@ const IncomeView = ({
     } else {
       toast.error(`Erro ao adicionar receita: ${result.error}`);
     }
+  };
+
+  const moveIncome = async (income, direction, list) => {
+    const currentIndex = list.findIndex(i => i.id === income.id);
+    if (
+      (direction === 'up' && currentIndex === 0) ||
+      (direction === 'down' && currentIndex === list.length - 1)
+    ) {
+      return;
+    }
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const swapIncome = list[newIndex];
+
+    // Trocar os valores de order
+    const currentOrder = income.order !== undefined ? income.order : currentIndex;
+    const swapOrder = swapIncome.order !== undefined ? swapIncome.order : newIndex;
+
+    await onSave('incomes', { ...income, order: swapOrder });
+    await onSave('incomes', { ...swapIncome, order: currentOrder });
+
+    toast.success('Ordem atualizada!');
   };
 
   const updateOverride = async (income, newValueStr) => {
@@ -77,11 +121,6 @@ const IncomeView = ({
       }
     }
   };
-
-  const fixedIncomes = incomes.filter(i => i.type === 'fixed');
-  const variableIncomes = incomes.filter(
-    i => i.type === 'variable' && i.month === selectedMonth
-  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -161,7 +200,7 @@ const IncomeView = ({
               Receitas Fixas
             </div>
             <div className="divide-y">
-              {fixedIncomes.map(item => {
+              {sortedFixedIncomes.map((item, index) => {
                 const isOverridden =
                   item.overrides && item.overrides[selectedMonth] !== undefined;
                 const currentValue = isOverridden
@@ -170,10 +209,39 @@ const IncomeView = ({
 
                 return (
                   <div key={item.id} className="p-4 flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-slate-400">
-                        Base: {formatCurrency(item.value)}
+                    <div className="flex items-center gap-2">
+                      {/* Botões de reordenação */}
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => moveIncome(item, 'up', sortedFixedIncomes)}
+                          disabled={index === 0}
+                          className={`p-0.5 rounded transition-colors ${
+                            index === 0
+                              ? 'text-slate-300 cursor-not-allowed'
+                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                          }`}
+                          title="Mover para cima"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          onClick={() => moveIncome(item, 'down', sortedFixedIncomes)}
+                          disabled={index === sortedFixedIncomes.length - 1}
+                          className={`p-0.5 rounded transition-colors ${
+                            index === sortedFixedIncomes.length - 1
+                              ? 'text-slate-300 cursor-not-allowed'
+                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                          }`}
+                          title="Mover para baixo"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-slate-400">
+                          Base: {formatCurrency(item.value)}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -226,14 +294,43 @@ const IncomeView = ({
               Extras ({MONTHS[selectedMonth]})
             </div>
             <div className="divide-y">
-              {variableIncomes.length === 0 ? (
+              {sortedVariableIncomes.length === 0 ? (
                 <div className="p-4 text-center text-slate-400 text-sm">
                   Nenhuma receita extra neste mês
                 </div>
               ) : (
-                variableIncomes.map(item => (
+                sortedVariableIncomes.map((item, index) => (
                   <div key={item.id} className="p-4 flex justify-between items-center">
-                    <span className="font-medium">{item.name}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Botões de reordenação */}
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => moveIncome(item, 'up', sortedVariableIncomes)}
+                          disabled={index === 0}
+                          className={`p-0.5 rounded transition-colors ${
+                            index === 0
+                              ? 'text-slate-300 cursor-not-allowed'
+                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                          }`}
+                          title="Mover para cima"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          onClick={() => moveIncome(item, 'down', sortedVariableIncomes)}
+                          disabled={index === sortedVariableIncomes.length - 1}
+                          className={`p-0.5 rounded transition-colors ${
+                            index === sortedVariableIncomes.length - 1
+                              ? 'text-slate-300 cursor-not-allowed'
+                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                          }`}
+                          title="Mover para baixo"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                      <span className="font-medium">{item.name}</span>
+                    </div>
                     <div className="flex gap-4 items-center">
                       <span className="font-mono font-bold text-blue-600">
                         {formatCurrency(item.value)}
