@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses } from '../services/calculations';
+import { useReorder } from '../hooks/useReorder';
 
 const CreditCardView = ({
   selectedMonth,
@@ -22,9 +24,15 @@ const CreditCardView = ({
     startMonth: selectedMonth
   });
 
+  // Usar hook de reordenação para todos os itens cadastrados
+  const { sortedItems: sortedCreditExpenses, moveItem } = useReorder(
+    creditCardExpenses,
+    (updatedItem) => onSave('credit_expenses', updatedItem)
+  );
+
   const activeItems = useMemo(
-    () => getActiveCardExpenses(creditCardExpenses, selectedMonth),
-    [creditCardExpenses, selectedMonth]
+    () => getActiveCardExpenses(sortedCreditExpenses, selectedMonth),
+    [sortedCreditExpenses, selectedMonth]
   );
 
   const plannedCardTotal = useMemo(
@@ -49,16 +57,31 @@ const CreditCardView = ({
       return;
     }
 
+    const maxOrder = creditCardExpenses.reduce(
+      (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
+      0
+    );
+
     const result = await onSave('credit_expenses', {
       name: newCardExpense.name,
       value: parseFloat(newCardExpense.value),
       installments: parseInt(newCardExpense.installments),
-      startMonth: parseInt(newCardExpense.startMonth)
+      startMonth: parseInt(newCardExpense.startMonth),
+      order: maxOrder + 1
     });
 
     if (result.success) {
       toast.success('Compra adicionada!');
       setNewCardExpense({ name: '', value: '', installments: 1, startMonth: selectedMonth });
+    }
+  };
+
+  const handleMove = async (item, direction) => {
+    const result = await moveItem(item, direction);
+    if (result.success) {
+      toast.success('Ordem atualizada!');
+    } else if (result.error) {
+      toast.error('Erro ao reordenar');
     }
   };
 
@@ -158,12 +181,21 @@ const CreditCardView = ({
       <div className="bg-white rounded-xl shadow-sm border p-4">
         <h3 className="font-bold mb-4">Itens Cadastrados</h3>
         <div className="divide-y max-h-60 overflow-auto">
-          {creditCardExpenses.map(item => (
+          {sortedCreditExpenses.map((item, index) => (
             <div key={item.id} className="py-3 flex justify-between items-center">
-              <div>
-                <div className="font-bold">{item.name}</div>
-                <div className="text-xs text-slate-500">
-                  {item.installments}x de {formatCurrency(item.value)} - Inicia em {MONTHS[item.startMonth]}
+              <div className="flex items-center gap-2 flex-1">
+                {/* Botões de reordenação */}
+                <ReorderButtons
+                  index={index}
+                  totalItems={sortedCreditExpenses.length}
+                  onMoveUp={() => handleMove(item, 'up')}
+                  onMoveDown={() => handleMove(item, 'down')}
+                />
+                <div>
+                  <div className="font-bold">{item.name}</div>
+                  <div className="text-xs text-slate-500">
+                    {item.installments}x de {formatCurrency(item.value)} - Inicia em {MONTHS[item.startMonth]}
+                  </div>
                 </div>
               </div>
               <button onClick={() => handleDelete(item.id)}>

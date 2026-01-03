@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import ReorderButtons from './ReorderButtons';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateExpense, getMonthlyCardTotal } from '../services/calculations';
+import { useReorder } from '../hooks/useReorder';
 
 const MonthlyExpensesView = ({
   selectedMonth,
@@ -19,14 +21,10 @@ const MonthlyExpensesView = ({
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
 
-  // Ordenar despesas por campo 'order' (se existir)
-  const sortedExpenses = useMemo(() => {
-    return [...expenses].sort((a, b) => {
-      const orderA = a.order !== undefined ? a.order : 999;
-      const orderB = b.order !== undefined ? b.order : 999;
-      return orderA - orderB;
-    });
-  }, [expenses]);
+  // Usar o hook de reordenação
+  const { sortedItems: sortedExpenses, moveItem } = useReorder(expenses, (updatedItem) =>
+    onSave('expenses', updatedItem)
+  );
 
   const handleAdd = async () => {
     const validation = validateExpense({
@@ -59,26 +57,15 @@ const MonthlyExpensesView = ({
     }
   };
 
-  const moveExpense = async (expense, direction) => {
-    const currentIndex = sortedExpenses.findIndex(e => e.id === expense.id);
-    if (
-      (direction === 'up' && currentIndex === 0) ||
-      (direction === 'down' && currentIndex === sortedExpenses.length - 1)
-    ) {
-      return;
+  const handleMove = async (expense, direction) => {
+    const result = await moveItem(expense, direction);
+    if (result.success) {
+      toast.success('Ordem atualizada!');
+    } else if (result.message) {
+      // Mensagem informativa, não erro
+    } else if (result.error) {
+      toast.error('Erro ao reordenar');
     }
-
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const swapExpense = sortedExpenses[newIndex];
-
-    // Trocar os valores de order
-    const currentOrder = expense.order !== undefined ? expense.order : currentIndex;
-    const swapOrder = swapExpense.order !== undefined ? swapExpense.order : newIndex;
-
-    await onSave('expenses', { ...expense, order: swapOrder });
-    await onSave('expenses', { ...swapExpense, order: currentOrder });
-
-    toast.success('Ordem atualizada!');
   };
 
   const togglePaid = async (expense) => {
@@ -177,32 +164,12 @@ const MonthlyExpensesView = ({
               >
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   {/* Botões de reordenação */}
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      onClick={() => moveExpense(expense, 'up')}
-                      disabled={index === 0}
-                      className={`p-0.5 rounded transition-colors ${
-                        index === 0
-                          ? 'text-slate-300 cursor-not-allowed'
-                          : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                      }`}
-                      title="Mover para cima"
-                    >
-                      <ChevronUp size={16} />
-                    </button>
-                    <button
-                      onClick={() => moveExpense(expense, 'down')}
-                      disabled={index === sortedExpenses.length - 1}
-                      className={`p-0.5 rounded transition-colors ${
-                        index === sortedExpenses.length - 1
-                          ? 'text-slate-300 cursor-not-allowed'
-                          : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                      }`}
-                      title="Mover para baixo"
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                  </div>
+                  <ReorderButtons
+                    index={index}
+                    totalItems={sortedExpenses.length}
+                    onMoveUp={() => handleMove(expense, 'up')}
+                    onMoveDown={() => handleMove(expense, 'down')}
+                  />
 
                   <button
                     onClick={() => togglePaid(expense)}

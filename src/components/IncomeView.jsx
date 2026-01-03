@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateIncome } from '../services/calculations';
+import { useReorder } from '../hooks/useReorder';
 
 const IncomeView = ({
   selectedMonth,
@@ -20,22 +22,23 @@ const IncomeView = ({
     month: selectedMonth
   });
 
-  // Ordenar receitas por campo 'order' (se existir)
-  const sortedFixedIncomes = useMemo(() => {
-    return [...incomes.filter(i => i.type === 'fixed')].sort((a, b) => {
-      const orderA = a.order !== undefined ? a.order : 999;
-      const orderB = b.order !== undefined ? b.order : 999;
-      return orderA - orderB;
-    });
-  }, [incomes]);
+  // Filtrar receitas por tipo
+  const fixedIncomes = useMemo(() => incomes.filter(i => i.type === 'fixed'), [incomes]);
+  const variableIncomes = useMemo(
+    () => incomes.filter(i => i.type === 'variable' && i.month === selectedMonth),
+    [incomes, selectedMonth]
+  );
 
-  const sortedVariableIncomes = useMemo(() => {
-    return [...incomes.filter(i => i.type === 'variable' && i.month === selectedMonth)].sort((a, b) => {
-      const orderA = a.order !== undefined ? a.order : 999;
-      const orderB = b.order !== undefined ? b.order : 999;
-      return orderA - orderB;
-    });
-  }, [incomes, selectedMonth]);
+  // Usar hooks de reordenação para cada lista
+  const {
+    sortedItems: sortedFixedIncomes,
+    moveItem: moveFixedItem
+  } = useReorder(fixedIncomes, (updatedItem) => onSave('incomes', updatedItem));
+
+  const {
+    sortedItems: sortedVariableIncomes,
+    moveItem: moveVariableItem
+  } = useReorder(variableIncomes, (updatedItem) => onSave('incomes', updatedItem));
 
   const handleAdd = async () => {
     const validation = validateIncome({
@@ -69,26 +72,22 @@ const IncomeView = ({
     }
   };
 
-  const moveIncome = async (income, direction, list) => {
-    const currentIndex = list.findIndex(i => i.id === income.id);
-    if (
-      (direction === 'up' && currentIndex === 0) ||
-      (direction === 'down' && currentIndex === list.length - 1)
-    ) {
-      return;
+  const handleMoveFixed = async (income, direction) => {
+    const result = await moveFixedItem(income, direction);
+    if (result.success) {
+      toast.success('Ordem atualizada!');
+    } else if (result.error) {
+      toast.error('Erro ao reordenar');
     }
+  };
 
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const swapIncome = list[newIndex];
-
-    // Trocar os valores de order
-    const currentOrder = income.order !== undefined ? income.order : currentIndex;
-    const swapOrder = swapIncome.order !== undefined ? swapIncome.order : newIndex;
-
-    await onSave('incomes', { ...income, order: swapOrder });
-    await onSave('incomes', { ...swapIncome, order: currentOrder });
-
-    toast.success('Ordem atualizada!');
+  const handleMoveVariable = async (income, direction) => {
+    const result = await moveVariableItem(income, direction);
+    if (result.success) {
+      toast.success('Ordem atualizada!');
+    } else if (result.error) {
+      toast.error('Erro ao reordenar');
+    }
   };
 
   const updateOverride = async (income, newValueStr) => {
@@ -211,32 +210,12 @@ const IncomeView = ({
                   <div key={item.id} className="p-4 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       {/* Botões de reordenação */}
-                      <div className="flex flex-col gap-0.5">
-                        <button
-                          onClick={() => moveIncome(item, 'up', sortedFixedIncomes)}
-                          disabled={index === 0}
-                          className={`p-0.5 rounded transition-colors ${
-                            index === 0
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                          }`}
-                          title="Mover para cima"
-                        >
-                          <ChevronUp size={14} />
-                        </button>
-                        <button
-                          onClick={() => moveIncome(item, 'down', sortedFixedIncomes)}
-                          disabled={index === sortedFixedIncomes.length - 1}
-                          className={`p-0.5 rounded transition-colors ${
-                            index === sortedFixedIncomes.length - 1
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                          }`}
-                          title="Mover para baixo"
-                        >
-                          <ChevronDown size={14} />
-                        </button>
-                      </div>
+                      <ReorderButtons
+                        index={index}
+                        totalItems={sortedFixedIncomes.length}
+                        onMoveUp={() => handleMoveFixed(item, 'up')}
+                        onMoveDown={() => handleMoveFixed(item, 'down')}
+                      />
                       <div>
                         <div className="font-medium">{item.name}</div>
                         <div className="text-xs text-slate-400">
@@ -303,32 +282,12 @@ const IncomeView = ({
                   <div key={item.id} className="p-4 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       {/* Botões de reordenação */}
-                      <div className="flex flex-col gap-0.5">
-                        <button
-                          onClick={() => moveIncome(item, 'up', sortedVariableIncomes)}
-                          disabled={index === 0}
-                          className={`p-0.5 rounded transition-colors ${
-                            index === 0
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                          }`}
-                          title="Mover para cima"
-                        >
-                          <ChevronUp size={14} />
-                        </button>
-                        <button
-                          onClick={() => moveIncome(item, 'down', sortedVariableIncomes)}
-                          disabled={index === sortedVariableIncomes.length - 1}
-                          className={`p-0.5 rounded transition-colors ${
-                            index === sortedVariableIncomes.length - 1
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                          }`}
-                          title="Mover para baixo"
-                        >
-                          <ChevronDown size={14} />
-                        </button>
-                      </div>
+                      <ReorderButtons
+                        index={index}
+                        totalItems={sortedVariableIncomes.length}
+                        onMoveUp={() => handleMoveVariable(item, 'up')}
+                        onMoveDown={() => handleMoveVariable(item, 'down')}
+                      />
                       <span className="font-medium">{item.name}</span>
                     </div>
                     <div className="flex gap-4 items-center">
