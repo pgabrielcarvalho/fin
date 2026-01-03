@@ -270,7 +270,7 @@ const CreditCardView = ({
                     <div className="flex-1">
                       <div className="font-medium text-slate-800">{item.name}</div>
                       <div className="text-xs mt-1">
-                        {item.type === 'fixed' && (
+                        {(!item.type || item.type === 'fixed') && (
                           <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">
                             Fixa
                           </span>

@@ -196,8 +196,8 @@ export const validateCardExpense = (cardExpense) => {
  * @returns {boolean} - Se a despesa está ativa
  */
 export const isCardExpenseActive = (expense, currentMonth, currentYear = new Date().getFullYear()) => {
-  // Despesas fixas sempre estão ativas
-  if (expense.type === 'fixed') {
+  // Despesas sem tipo ou fixas sempre estão ativas (retrocompatibilidade)
+  if (!expense.type || expense.type === 'fixed') {
     return true;
   }
 
