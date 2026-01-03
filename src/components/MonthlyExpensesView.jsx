@@ -1,25 +1,44 @@
-import React, { useState } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
 import MonthSelector from './MonthSelector';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { validateExpense, getMonthlyCardTotal } from '../services/calculations';
+import { validateExpense, getMonthlyCardTotal, getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyBalance } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 
 const MonthlyExpensesView = ({
   selectedMonth,
   onMonthChange,
   expenses,
+  incomes,
   creditCardExpenses,
   invoiceTotals,
   onSave,
-  onDelete
+  onDelete,
+  onNavigate
 }) => {
   const toast = useToast();
   const [newExpense, setNewExpense] = useState({ name: '', value: '' });
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
+
+  // Cálculos do resumo (Dashboard)
+  const stats = useMemo(() => {
+    const income = getMonthlyIncome(incomes, selectedMonth);
+    const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth);
+    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
+    const totalExpenses = fixedExpenses + cardExpenses;
+    const balance = getMonthlyBalance(income, fixedExpenses, cardExpenses);
+
+    return {
+      income,
+      fixedExpenses,
+      cardExpenses,
+      totalExpenses,
+      balance
+    };
+  }, [selectedMonth, incomes, expenses, creditCardExpenses, invoiceTotals]);
 
   // Usar o hook de reordenação
   const { sortedItems: sortedExpenses, moveItem } = useReorder(expenses, (updatedItem) =>
@@ -108,6 +127,56 @@ const MonthlyExpensesView = ({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Despesas Mensais</h2>
         <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card de Receita */}
+        <div
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:border-emerald-200 transition-colors cursor-pointer"
+          onClick={() => onNavigate?.('incomes')}
+        >
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <TrendingUp size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Receita Prevista
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {formatCurrency(stats.income)}
+          </div>
+        </div>
+
+        {/* Card de Despesas */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500">
+            <TrendingDown size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Total Despesas
+          </div>
+          <div className="text-2xl font-bold text-red-600">
+            {formatCurrency(stats.totalExpenses)}
+          </div>
+          <div className="mt-1 text-[10px] text-slate-500">
+            Fixo: {formatCurrency(stats.fixedExpenses)} | Cartão:{' '}
+            {formatCurrency(stats.cardExpenses)}
+          </div>
+        </div>
+
+        {/* Card de Saldo */}
+        <div
+          className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
+            stats.balance >= 0
+              ? 'bg-emerald-600 text-white'
+              : 'bg-red-600 text-white'
+          }`}
+        >
+          <div className="text-white/80 text-xs mb-1 font-medium">Resultado</div>
+          <div className="text-2xl font-bold">
+            {formatCurrency(stats.balance)}
+          </div>
+        </div>
       </div>
 
       {/* Formulário de Adição */}

@@ -31,7 +31,7 @@ const App = () => {
   const toast = useToast();
 
   // --- ESTADO DA UI ---
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
   // --- OPERAÇÕES DO FIRESTORE ---
@@ -125,10 +125,12 @@ const App = () => {
               selectedMonth={selectedMonth}
               onMonthChange={setSelectedMonth}
               expenses={expenses}
+              incomes={incomes}
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
               onSave={saveItem}
               onDelete={deleteItem}
+              onNavigate={setActiveTab}
             />
           )}
 

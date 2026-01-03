@@ -16,7 +16,6 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', icon: PieChart, label: 'Visão Geral' },
     { id: 'incomes', icon: Banknote, label: 'Receitas' },
     { id: 'monthly', icon: Calendar, label: 'Despesas Mensais' },
     { id: 'credit', icon: CreditCard, label: 'Gestão Cartão' },
