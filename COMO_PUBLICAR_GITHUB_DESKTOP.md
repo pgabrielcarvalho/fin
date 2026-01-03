@@ -27,8 +27,12 @@ No GitHub Desktop você verá:
 - **Lado direito**: O que foi alterado em cada arquivo (verde = adicionado, vermelho = removido)
 
 As alterações que você verá agora são:
-- ✅ `src/components/MonthlyExpensesView.jsx` (botões de reordenação)
-- ✅ `src/components/IncomeView.jsx` (botões de reordenação)
+- ✅ `src/hooks/useReorder.js` (novo hook reutilizável)
+- ✅ `src/components/ReorderButtons.jsx` (novo componente)
+- ✅ `src/components/MonthlyExpensesView.jsx` (reordenação refatorada)
+- ✅ `src/components/IncomeView.jsx` (reordenação refatorada)
+- ✅ `src/components/CreditCardView.jsx` (nova reordenação)
+- ✅ `src/components/VacationFundView.jsx` (nova reordenação)
 
 ---
 
@@ -40,14 +44,16 @@ As alterações que você verá agora são:
 
 2. **Digite no Summary:**
    ```
-   feat: adicionar reordenação manual de despesas e receitas
+   feat: refatorar sistema de reordenação com hook reutilizável
    ```
 
 3. **Digite na Description (opcional):**
    ```
-   - Botões de seta (↑ ↓) para reordenar despesas
-   - Botões de seta para reordenar receitas fixas e variáveis
-   - Ordem salva automaticamente no Firebase
+   - Hook useReorder com normalização automática
+   - Componente ReorderButtons reutilizável
+   - Corrigir bug de movimentação de itens
+   - Reordenação em TODOS os módulos (despesas, receitas, cartão, férias)
+   - Ordem sequencial (1, 2, 3...) normalizada automaticamente
    ```
 
 4. Clique no botão azul **"Commit to main"**

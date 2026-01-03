@@ -36,18 +36,17 @@ export const getMonthlyFixedExpenses = (expenses, monthIndex) => {
  * Calcula o total do cartão de crédito para um mês
  * Prioriza valor manual da fatura, senão calcula baseado nos parcelamentos
  */
-export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthIndex) => {
+export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthIndex, currentYear = new Date().getFullYear()) => {
   // Se há valor manual (fatura real), usa ele
   const manualTotal = invoiceTotals?.[monthIndex] || 0;
   if (manualTotal > 0) {
     return manualTotal;
   }
 
-  // Senão, calcula baseado nas parcelas ativas
-  const activeItems = creditCardExpenses.filter(item => {
-    const endMonth = item.startMonth + item.installments;
-    return monthIndex >= item.startMonth && monthIndex < endMonth;
-  });
+  // Senão, calcula baseado nas despesas ativas (fixas + parceladas ativas)
+  const activeItems = creditCardExpenses.filter(item =>
+    isCardExpenseActive(item, monthIndex, currentYear)
+  );
 
   return activeItems.reduce((acc, item) => acc + item.value, 0);
 };
@@ -55,15 +54,13 @@ export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthInde
 /**
  * Calcula as despesas de cartão ativas em um mês específico
  */
-export const getActiveCardExpenses = (creditCardExpenses, monthIndex) => {
+export const getActiveCardExpenses = (creditCardExpenses, monthIndex, currentYear = new Date().getFullYear()) => {
   return creditCardExpenses
-    .filter(item => {
-      const endMonth = item.startMonth + item.installments;
-      return monthIndex >= item.startMonth && monthIndex < endMonth;
-    })
+    .filter(item => isCardExpenseActive(item, monthIndex, currentYear))
     .map(item => ({
       ...item,
-      currentParcel: monthIndex - item.startMonth + 1
+      // Para despesas parceladas, calcula em qual parcela está
+      currentParcel: item.type === 'installment' ? null : null
     }));
 };
 
@@ -176,16 +173,51 @@ export const validateCardExpense = (cardExpense) => {
     errors.push('Valor deve ser maior que zero');
   }
 
-  if (!cardExpense.installments || cardExpense.installments < 1 || cardExpense.installments > 24) {
-    errors.push('Número de parcelas deve estar entre 1 e 24');
-  }
-
-  if (cardExpense.startMonth === undefined || cardExpense.startMonth < 0 || cardExpense.startMonth > 11) {
-    errors.push('Mês de início inválido');
+  if (cardExpense.type === 'installment') {
+    if (!cardExpense.installments || cardExpense.installments < 2 || cardExpense.installments > 24) {
+      errors.push('Número de parcelas deve estar entre 2 e 24');
+    }
+    if (cardExpense.lastMonth === undefined || cardExpense.lastMonth < 0 || cardExpense.lastMonth > 11) {
+      errors.push('Mês da última parcela inválido');
+    }
   }
 
   return {
     isValid: errors.length === 0,
     errors
   };
+};
+
+/**
+ * Verifica se uma despesa de cartão está ativa em determinado mês/ano
+ * @param {Object} expense - Despesa do cartão
+ * @param {number} currentMonth - Mês atual (0-11)
+ * @param {number} currentYear - Ano atual
+ * @returns {boolean} - Se a despesa está ativa
+ */
+export const isCardExpenseActive = (expense, currentMonth, currentYear = new Date().getFullYear()) => {
+  // Despesas fixas sempre estão ativas
+  if (expense.type === 'fixed') {
+    return true;
+  }
+
+  // Despesas parceladas: verifica se ainda não passou da última parcela
+  if (expense.type === 'installment') {
+    const lastYear = expense.lastYear || currentYear;
+
+    // Se o ano da última parcela for maior, ainda está ativa
+    if (lastYear > currentYear) {
+      return true;
+    }
+
+    // Se for o mesmo ano, verifica o mês
+    if (lastYear === currentYear && expense.lastMonth >= currentMonth) {
+      return true;
+    }
+
+    // Já passou da última parcela
+    return false;
+  }
+
+  return false;
 };
