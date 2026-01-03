@@ -118,27 +118,27 @@ const CreditCardView = ({
       {/* Card de Fatura */}
       <div className="bg-indigo-600 p-6 rounded-xl shadow-lg text-white">
         <h3 className="font-bold mb-4">Fechamento da Fatura ({MONTHS[selectedMonth]})</h3>
-        <div className="flex gap-4 items-end flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs text-indigo-200">Valor Real (App do Banco)</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs text-indigo-200 block mb-2">Valor Real (App do Banco)</label>
             <div className="flex items-center bg-indigo-700 p-3 rounded border border-indigo-500">
-              <span className="mr-2">R$</span>
+              <span className="mr-2 text-lg">R$</span>
               <input
                 type="number"
                 value={manualInvoiceTotal || ''}
                 onChange={e => handleInvoiceChange(e.target.value)}
                 placeholder={plannedCardTotal.toFixed(2)}
-                className="bg-transparent text-white font-bold text-2xl w-full outline-none"
+                className="bg-transparent text-white font-bold text-2xl w-full outline-none placeholder-indigo-300"
               />
             </div>
           </div>
-          <div className="bg-white/10 p-3 rounded flex-1 min-w-[150px]">
-            <div className="text-xs text-indigo-200">Previsto (Fixos)</div>
-            <div className="font-bold text-lg">{formatCurrency(plannedCardTotal)}</div>
+          <div className="bg-white/10 p-3 rounded">
+            <div className="text-xs text-indigo-200 mb-1">Previsto (Fixas + Parceladas)</div>
+            <div className="font-bold text-2xl">{formatCurrency(plannedCardTotal)}</div>
           </div>
-          <div className="bg-white text-indigo-900 p-3 rounded flex-1 min-w-[150px]">
-            <div className="text-xs font-bold">Avulsos (Calc)</div>
-            <div className="font-bold text-lg">{formatCurrency(miscellaneousExpenses)}</div>
+          <div className="bg-white text-indigo-900 p-3 rounded">
+            <div className="text-xs font-bold mb-1">Avulsos (Calc)</div>
+            <div className="font-bold text-2xl">{formatCurrency(miscellaneousExpenses)}</div>
           </div>
         </div>
       </div>
@@ -175,8 +175,8 @@ const CreditCardView = ({
               onClick={() => setNewCardExpense({ ...newCardExpense, type: 'fixed' })}
               className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
                 newCardExpense.type === 'fixed'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
               }`}
             >
               Fixa (todo mês)
@@ -186,8 +186,8 @@ const CreditCardView = ({
               onClick={() => setNewCardExpense({ ...newCardExpense, type: 'installment' })}
               className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
                 newCardExpense.type === 'installment'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
               }`}
             >
               Parcelada
