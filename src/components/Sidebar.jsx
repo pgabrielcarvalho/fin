@@ -18,7 +18,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout }) => {
   const menuItems = [
     { id: 'incomes', icon: Banknote, label: 'Receitas' },
     { id: 'monthly', icon: Calendar, label: 'Despesas' },
-    { id: 'credit', icon: CreditCard, label: 'Gestão Cartão' },
+    { id: 'credit', icon: CreditCard, label: 'Cartão' },
     { id: 'yearly', icon: BarChart3, label: 'Visão Anual' },
     { id: 'vacation', icon: Plane, label: 'Fundo Férias' },
   ];

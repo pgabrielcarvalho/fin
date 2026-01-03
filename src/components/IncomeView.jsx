@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, RotateCcw, TrendingUp } from 'lucide-react';
-import MonthSelector from './MonthSelector';
-import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
+import MonthTabs from './MonthTabs';
+import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+import MonthlyNotes from './MonthlyNotes';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -13,7 +14,9 @@ const IncomeView = ({
   onMonthChange,
   incomes,
   onSave,
-  onDelete
+  onDelete,
+  notes,
+  onSaveNotes
 }) => {
   const toast = useToast();
   const [newIncome, setNewIncome] = useState({
@@ -137,33 +140,27 @@ const IncomeView = ({
     }
   };
 
-  const handleCopyFromPreviousMonth = async () => {
-    const previousMonth = selectedMonth - 1;
-
-    if (!window.confirm(`Copiar dados de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
-      return;
-    }
-
+  const handleCopyFromMonth = async (sourceMonth) => {
     let copiedCount = 0;
 
     // 1. Copiar overrides de receitas fixas
     for (const income of fixedIncomes) {
-      const previousValue = income.overrides?.[previousMonth];
+      const sourceValue = income.overrides?.[sourceMonth];
 
-      if (previousValue !== undefined) {
-        // Havia override no mês anterior, criar override para o mês atual
-        const newOverrides = { ...income.overrides, [selectedMonth]: previousValue };
+      if (sourceValue !== undefined) {
+        // Havia override no mês de origem, criar override para o mês atual
+        const newOverrides = { ...income.overrides, [selectedMonth]: sourceValue };
         await onSave('incomes', { ...income, overrides: newOverrides });
         copiedCount++;
       }
     }
 
-    // 2. Copiar receitas variáveis do mês anterior
-    const previousVariableIncomes = incomes.filter(
-      i => i.type === 'variable' && i.month === previousMonth
+    // 2. Copiar receitas variáveis do mês de origem
+    const sourceVariableIncomes = incomes.filter(
+      i => i.type === 'variable' && i.month === sourceMonth
     );
 
-    for (const income of previousVariableIncomes) {
+    for (const income of sourceVariableIncomes) {
       const maxOrder = incomes.reduce((max, inc) =>
         Math.max(max, inc.order !== undefined ? inc.order : 0), 0
       );
@@ -179,20 +176,20 @@ const IncomeView = ({
       copiedCount++;
     }
 
-    toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[previousMonth]}`);
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'receita copiada' : 'receitas copiadas'} de ${MONTHS[sourceMonth]}`);
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Gestão de Receitas</h2>
-        <div className="flex gap-3 items-center">
-          <CopyFromPreviousMonthButton
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-800">Gestão de Receitas</h2>
+          <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
-            onCopy={handleCopyFromPreviousMonth}
+            onCopy={handleCopyFromMonth}
           />
-          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
         </div>
+        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
       {/* Cards de Resumo */}
@@ -412,6 +409,13 @@ const IncomeView = ({
           </div>
         </div>
       </div>
+
+      {/* Anotações do Mês */}
+      <MonthlyNotes
+        selectedMonth={selectedMonth}
+        notes={notes}
+        onSave={onSaveNotes}
+      />
     </div>
   );
 };

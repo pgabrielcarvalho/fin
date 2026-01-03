@@ -44,6 +44,10 @@ const App = () => {
   const { data: vacationIncomes } = useCollection(user, 'vacation_incomes', INITIAL_VACATION_INCOMES);
   const { data: vacationExpenses } = useCollection(user, 'vacation_expenses', INITIAL_VACATION_EXPENSES);
   const { data: invoiceTotals } = useDocument(user, 'invoice_totals', Array(12).fill(0));
+  const { data: incomesNotes } = useDocument(user, 'incomes_notes', Array(12).fill(''));
+  const { data: expensesNotes } = useDocument(user, 'expenses_notes', Array(12).fill(''));
+  const { data: creditNotes } = useDocument(user, 'credit_notes', Array(12).fill(''));
+  const { data: vacationNotes } = useDocument(user, 'vacation_notes', Array(12).fill(''));
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -64,6 +68,22 @@ const App = () => {
 
   const handleSaveInvoiceTotal = async (newTotals) => {
     await saveDocument('invoice_totals', newTotals);
+  };
+
+  const handleSaveIncomesNotes = async (newNotes) => {
+    await saveDocument('incomes_notes', newNotes);
+  };
+
+  const handleSaveExpensesNotes = async (newNotes) => {
+    await saveDocument('expenses_notes', newNotes);
+  };
+
+  const handleSaveCreditNotes = async (newNotes) => {
+    await saveDocument('credit_notes', newNotes);
+  };
+
+  const handleSaveVacationNotes = async (newNotes) => {
+    await saveDocument('vacation_notes', newNotes);
   };
 
   // --- DADOS CONSOLIDADOS ---
@@ -117,6 +137,8 @@ const App = () => {
               incomes={incomes}
               onSave={saveItem}
               onDelete={deleteItem}
+              notes={incomesNotes}
+              onSaveNotes={handleSaveIncomesNotes}
             />
           )}
 
@@ -131,6 +153,8 @@ const App = () => {
               onSave={saveItem}
               onDelete={deleteItem}
               onNavigate={setActiveTab}
+              notes={expensesNotes}
+              onSaveNotes={handleSaveExpensesNotes}
             />
           )}
 
@@ -143,6 +167,8 @@ const App = () => {
               onSave={saveItem}
               onDelete={deleteItem}
               onSaveInvoiceTotal={handleSaveInvoiceTotal}
+              notes={creditNotes}
+              onSaveNotes={handleSaveCreditNotes}
             />
           )}
 
@@ -160,6 +186,8 @@ const App = () => {
               vacationFund={vacationFund}
               onSave={saveItem}
               onDelete={deleteItem}
+              notes={vacationNotes}
+              onSaveNotes={handleSaveVacationNotes}
             />
           )}
         </div>

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, RotateCcw } from 'lucide-react';
-import MonthSelector from './MonthSelector';
-import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
+import MonthTabs from './MonthTabs';
+import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+import MonthlyNotes from './MonthlyNotes';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -15,7 +16,9 @@ const CreditCardView = ({
   invoiceTotals,
   onSave,
   onDelete,
-  onSaveInvoiceTotal
+  onSaveInvoiceTotal,
+  notes,
+  onSaveNotes
 }) => {
   const toast = useToast();
   const [newCardExpense, setNewCardExpense] = useState({
@@ -143,35 +146,29 @@ const CreditCardView = ({
     }
   };
 
-  const handleCopyFromPreviousMonth = async () => {
-    const previousMonth = selectedMonth - 1;
-
-    if (!window.confirm(`Copiar despesas do cartão de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
-      return;
-    }
-
+  const handleCopyFromMonth = async (sourceMonth) => {
     let copiedCount = 0;
 
     // 1. Copiar overrides de despesas fixas do cartão
     const fixedExpenses = creditCardExpenses.filter(exp => !exp.type || exp.type === 'fixed');
 
     for (const expense of fixedExpenses) {
-      const previousValue = expense.overrides?.[previousMonth];
+      const sourceValue = expense.overrides?.[sourceMonth];
 
-      if (previousValue !== undefined) {
-        // Havia override no mês anterior, criar override para o mês atual
-        const newOverrides = { ...expense.overrides, [selectedMonth]: previousValue };
+      if (sourceValue !== undefined) {
+        // Havia override no mês de origem, criar override para o mês atual
+        const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
         await onSave('credit_expenses', { ...expense, overrides: newOverrides });
         copiedCount++;
       }
     }
 
-    // 2. Copiar despesas eventuais do mês anterior
-    const previousEventualExpenses = creditCardExpenses.filter(
-      exp => exp.type === 'eventual' && exp.month === previousMonth
+    // 2. Copiar despesas eventuais do mês de origem
+    const sourceEventualExpenses = creditCardExpenses.filter(
+      exp => exp.type === 'eventual' && exp.month === sourceMonth
     );
 
-    for (const expense of previousEventualExpenses) {
+    for (const expense of sourceEventualExpenses) {
       const maxOrder = creditCardExpenses.reduce(
         (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
         0
@@ -189,28 +186,28 @@ const CreditCardView = ({
     }
 
     // 3. Copiar o valor manual da fatura (se houver)
-    const previousInvoiceTotal = invoiceTotals?.[previousMonth];
-    if (previousInvoiceTotal && previousInvoiceTotal > 0) {
+    const sourceInvoiceTotal = invoiceTotals?.[sourceMonth];
+    if (sourceInvoiceTotal && sourceInvoiceTotal > 0) {
       const newTotals = [...(invoiceTotals || Array(12).fill(0))];
-      newTotals[selectedMonth] = previousInvoiceTotal;
+      newTotals[selectedMonth] = sourceInvoiceTotal;
       await onSaveInvoiceTotal(newTotals);
       copiedCount++;
     }
 
-    toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[previousMonth]}`);
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[sourceMonth]}`);
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Gestão de Cartão</h2>
-        <div className="flex gap-3 items-center">
-          <CopyFromPreviousMonthButton
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-800">Cartão de Crédito</h2>
+          <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
-            onCopy={handleCopyFromPreviousMonth}
+            onCopy={handleCopyFromMonth}
           />
-          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
         </div>
+        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
       {/* Card de Fatura */}
@@ -478,6 +475,13 @@ const CreditCardView = ({
           )}
         </div>
       </div>
+
+      {/* Anotações do Mês */}
+      <MonthlyNotes
+        selectedMonth={selectedMonth}
+        notes={notes}
+        onSave={onSaveNotes}
+      />
     </div>
   );
 };

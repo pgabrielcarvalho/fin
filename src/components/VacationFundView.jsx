@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import SimpleNotes from './SimpleNotes';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { getVacationTotals } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 
-const VacationFundView = ({ vacationFund, onSave, onDelete }) => {
+const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }) => {
   const toast = useToast();
   const [newVacationIncome, setNewVacationIncome] = useState({ name: '', value: '' });
   const [newVacationExpense, setNewVacationExpense] = useState({ name: '', value: '' });
@@ -242,6 +243,13 @@ const VacationFundView = ({ vacationFund, onSave, onDelete }) => {
           </div>
         </div>
       </div>
+
+      {/* Anotações */}
+      <SimpleNotes
+        notes={notes}
+        onSave={onSaveNotes}
+        title="Anotações do Fundo de Férias"
+      />
     </div>
   );
 };

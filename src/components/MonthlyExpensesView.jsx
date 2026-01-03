@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
-import MonthSelector from './MonthSelector';
-import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
+import MonthTabs from './MonthTabs';
+import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+import MonthlyNotes from './MonthlyNotes';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -17,7 +18,9 @@ const MonthlyExpensesView = ({
   invoiceTotals,
   onSave,
   onDelete,
-  onNavigate
+  onNavigate,
+  notes,
+  onSaveNotes
 }) => {
   const toast = useToast();
   const [newExpense, setNewExpense] = useState({ name: '', value: '' });
@@ -123,41 +126,35 @@ const MonthlyExpensesView = ({
     }
   };
 
-  const handleCopyFromPreviousMonth = async () => {
-    const previousMonth = selectedMonth - 1;
-
-    if (!window.confirm(`Copiar despesas de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
-      return;
-    }
-
+  const handleCopyFromMonth = async (sourceMonth) => {
     let copiedCount = 0;
 
     // Copiar overrides de despesas fixas
     for (const expense of expenses) {
-      const previousValue = expense.overrides?.[previousMonth];
+      const sourceValue = expense.overrides?.[sourceMonth];
 
-      if (previousValue !== undefined) {
-        // Havia override no mês anterior, criar override para o mês atual
-        const newOverrides = { ...expense.overrides, [selectedMonth]: previousValue };
+      if (sourceValue !== undefined) {
+        // Havia override no mês de origem, criar override para o mês atual
+        const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
         await onSave('expenses', { ...expense, overrides: newOverrides });
         copiedCount++;
       }
     }
 
-    toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[previousMonth]}`);
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
-        <div className="flex gap-3 items-center">
-          <CopyFromPreviousMonthButton
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
+          <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
-            onCopy={handleCopyFromPreviousMonth}
+            onCopy={handleCopyFromMonth}
           />
-          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
         </div>
+        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
       {/* Cards de Resumo */}
@@ -343,6 +340,13 @@ const MonthlyExpensesView = ({
           </div>
         </div>
       </div>
+
+      {/* Anotações do Mês */}
+      <MonthlyNotes
+        selectedMonth={selectedMonth}
+        notes={notes}
+        onSave={onSaveNotes}
+      />
     </div>
   );
 };
