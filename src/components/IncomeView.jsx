@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, RotateCcw, TrendingUp } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -136,11 +137,62 @@ const IncomeView = ({
     }
   };
 
+  const handleCopyFromPreviousMonth = async () => {
+    const previousMonth = selectedMonth - 1;
+
+    if (!window.confirm(`Copiar dados de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
+      return;
+    }
+
+    let copiedCount = 0;
+
+    // 1. Copiar overrides de receitas fixas
+    for (const income of fixedIncomes) {
+      const previousValue = income.overrides?.[previousMonth];
+
+      if (previousValue !== undefined) {
+        // Havia override no mês anterior, criar override para o mês atual
+        const newOverrides = { ...income.overrides, [selectedMonth]: previousValue };
+        await onSave('incomes', { ...income, overrides: newOverrides });
+        copiedCount++;
+      }
+    }
+
+    // 2. Copiar receitas variáveis do mês anterior
+    const previousVariableIncomes = incomes.filter(
+      i => i.type === 'variable' && i.month === previousMonth
+    );
+
+    for (const income of previousVariableIncomes) {
+      const maxOrder = incomes.reduce((max, inc) =>
+        Math.max(max, inc.order !== undefined ? inc.order : 0), 0
+      );
+
+      await onSave('incomes', {
+        name: income.name,
+        value: income.value,
+        type: 'variable',
+        month: selectedMonth,
+        overrides: {},
+        order: maxOrder + 1
+      });
+      copiedCount++;
+    }
+
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[previousMonth]}`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Gestão de Receitas</h2>
-        <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        <div className="flex gap-3 items-center">
+          <CopyFromPreviousMonthButton
+            selectedMonth={selectedMonth}
+            onCopy={handleCopyFromPreviousMonth}
+          />
+          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        </div>
       </div>
 
       {/* Cards de Resumo */}

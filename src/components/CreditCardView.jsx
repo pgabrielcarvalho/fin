@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -38,8 +39,18 @@ const CreditCardView = ({
   );
 
   const plannedCardTotal = useMemo(
-    () => activeItems.reduce((acc, item) => acc + item.value, 0),
-    [activeItems]
+    () => activeItems.reduce((acc, item) => {
+      // Se for despesa fixa, verifica se há override para o mês selecionado
+      if (!item.type || item.type === 'fixed') {
+        const monthValue = item.overrides?.[selectedMonth] !== undefined
+          ? item.overrides[selectedMonth]
+          : item.value;
+        return acc + monthValue;
+      }
+      // Parceladas e eventuais usam o valor direto
+      return acc + item.value;
+    }, 0),
+    [activeItems, selectedMonth]
   );
 
   const manualInvoiceTotal = invoiceTotals?.[selectedMonth] || 0;
@@ -73,6 +84,7 @@ const CreditCardView = ({
 
     const result = await onSave('credit_expenses', {
       ...expenseData,
+      overrides: {},
       order: maxOrder + 1
     });
 
@@ -87,6 +99,26 @@ const CreditCardView = ({
         month: selectedMonth
       });
     }
+  };
+
+  const updateOverride = async (expense, newValueStr) => {
+    const newValue = parseFloat(newValueStr);
+    const newOverrides = { ...expense.overrides };
+
+    if (isNaN(newValue) || newValue === expense.value) {
+      delete newOverrides[selectedMonth];
+    } else {
+      newOverrides[selectedMonth] = newValue;
+    }
+
+    await onSave('credit_expenses', { ...expense, overrides: newOverrides });
+  };
+
+  const resetOverride = async (expense) => {
+    const newOverrides = { ...expense.overrides };
+    delete newOverrides[selectedMonth];
+    await onSave('credit_expenses', { ...expense, overrides: newOverrides });
+    toast.info('Valor restaurado');
   };
 
   const handleMove = async (item, direction) => {
@@ -111,11 +143,74 @@ const CreditCardView = ({
     }
   };
 
+  const handleCopyFromPreviousMonth = async () => {
+    const previousMonth = selectedMonth - 1;
+
+    if (!window.confirm(`Copiar despesas do cartão de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
+      return;
+    }
+
+    let copiedCount = 0;
+
+    // 1. Copiar overrides de despesas fixas do cartão
+    const fixedExpenses = creditCardExpenses.filter(exp => !exp.type || exp.type === 'fixed');
+
+    for (const expense of fixedExpenses) {
+      const previousValue = expense.overrides?.[previousMonth];
+
+      if (previousValue !== undefined) {
+        // Havia override no mês anterior, criar override para o mês atual
+        const newOverrides = { ...expense.overrides, [selectedMonth]: previousValue };
+        await onSave('credit_expenses', { ...expense, overrides: newOverrides });
+        copiedCount++;
+      }
+    }
+
+    // 2. Copiar despesas eventuais do mês anterior
+    const previousEventualExpenses = creditCardExpenses.filter(
+      exp => exp.type === 'eventual' && exp.month === previousMonth
+    );
+
+    for (const expense of previousEventualExpenses) {
+      const maxOrder = creditCardExpenses.reduce(
+        (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
+        0
+      );
+
+      await onSave('credit_expenses', {
+        name: expense.name,
+        value: expense.value,
+        type: 'eventual',
+        month: selectedMonth,
+        overrides: {},
+        order: maxOrder + 1
+      });
+      copiedCount++;
+    }
+
+    // 3. Copiar o valor manual da fatura (se houver)
+    const previousInvoiceTotal = invoiceTotals?.[previousMonth];
+    if (previousInvoiceTotal && previousInvoiceTotal > 0) {
+      const newTotals = [...(invoiceTotals || Array(12).fill(0))];
+      newTotals[selectedMonth] = previousInvoiceTotal;
+      await onSaveInvoiceTotal(newTotals);
+      copiedCount++;
+    }
+
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[previousMonth]}`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Gestão de Cartão</h2>
-        <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        <div className="flex gap-3 items-center">
+          <CopyFromPreviousMonthButton
+            selectedMonth={selectedMonth}
+            onCopy={handleCopyFromPreviousMonth}
+          />
+          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        </div>
       </div>
 
       {/* Card de Fatura */}
@@ -279,6 +374,11 @@ const CreditCardView = ({
           ) : (
             sortedCreditExpenses.map((item, index) => {
               const isActive = isCardExpenseActive(item, selectedMonth);
+              const isFixed = !item.type || item.type === 'fixed';
+              const isOverridden = isFixed && item.overrides && item.overrides[selectedMonth] !== undefined;
+              const currentValue = isOverridden
+                ? item.overrides[selectedMonth]
+                : item.value;
 
               return (
                 <div
@@ -300,10 +400,17 @@ const CreditCardView = ({
                     <div className="flex-1">
                       <div className="font-medium text-slate-800">{item.name}</div>
                       <div className="text-xs mt-1">
-                        {(!item.type || item.type === 'fixed') && (
-                          <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">
-                            Fixa
-                          </span>
+                        {isFixed && (
+                          <>
+                            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">
+                              Fixa
+                            </span>
+                            {isFixed && (
+                              <span className="ml-2 text-slate-400">
+                                Base: {formatCurrency(item.value)}
+                              </span>
+                            )}
+                          </>
                         )}
                         {item.type === 'installment' && (
                           <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
@@ -318,12 +425,47 @@ const CreditCardView = ({
                       </div>
                     </div>
 
-                    {/* Valor destacado */}
-                    <div className="text-right">
-                      <div className="font-mono font-bold text-indigo-700 text-lg">
-                        {formatCurrency(item.value)}
+                    {/* Valor - editável para despesas fixas */}
+                    {isFixed ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`flex items-center gap-2 p-1 rounded border ${
+                            isOverridden
+                              ? 'bg-yellow-50 border-yellow-300'
+                              : 'border-transparent'
+                          }`}
+                        >
+                          <span className="text-xs text-slate-400">
+                            {MONTHS[selectedMonth]}:
+                          </span>
+                          <input
+                            type="number"
+                            value={currentValue}
+                            onChange={e => updateOverride(item, e.target.value)}
+                            className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                              isOverridden ? 'text-yellow-700' : 'text-indigo-700'
+                            }`}
+                          />
+                        </div>
+                        {isOverridden && (
+                          <button
+                            onClick={() => resetOverride(item)}
+                            title="Restaurar valor original"
+                          >
+                            <RotateCcw
+                              size={16}
+                              className="text-slate-400 hover:text-indigo-600"
+                            />
+                          </button>
+                        )}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-indigo-700 text-lg">
+                          {formatCurrency(item.value)}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Botão de excluir */}
                     <button onClick={() => handleDelete(item.id)}>

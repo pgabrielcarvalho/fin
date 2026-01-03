@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import CopyFromPreviousMonthButton from './CopyFromPreviousMonthButton';
 import ReorderButtons from './ReorderButtons';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateExpense, getMonthlyCardTotal, getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyBalance } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
@@ -122,11 +123,41 @@ const MonthlyExpensesView = ({
     }
   };
 
+  const handleCopyFromPreviousMonth = async () => {
+    const previousMonth = selectedMonth - 1;
+
+    if (!window.confirm(`Copiar despesas de ${MONTHS[previousMonth]} para ${MONTHS[selectedMonth]}?`)) {
+      return;
+    }
+
+    let copiedCount = 0;
+
+    // Copiar overrides de despesas fixas
+    for (const expense of expenses) {
+      const previousValue = expense.overrides?.[previousMonth];
+
+      if (previousValue !== undefined) {
+        // Havia override no mês anterior, criar override para o mês atual
+        const newOverrides = { ...expense.overrides, [selectedMonth]: previousValue };
+        await onSave('expenses', { ...expense, overrides: newOverrides });
+        copiedCount++;
+      }
+    }
+
+    toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[previousMonth]}`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Despesas Mensais</h2>
-        <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
+        <div className="flex gap-3 items-center">
+          <CopyFromPreviousMonthButton
+            selectedMonth={selectedMonth}
+            onCopy={handleCopyFromPreviousMonth}
+          />
+          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+        </div>
       </div>
 
       {/* Cards de Resumo */}
