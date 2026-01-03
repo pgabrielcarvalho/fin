@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import MonthSelector from './MonthSelector';
+import GoalsAndAlerts from './GoalsAndAlerts';
+import { MonthlyComparisonChart, BalanceTrendChart } from './Charts';
 import { formatCurrency } from '../utils/formatters';
 import {
   getMonthlyIncome,
@@ -16,7 +18,9 @@ const Dashboard = ({
   expenses,
   creditCardExpenses,
   invoiceTotals,
-  onNavigate
+  onNavigate,
+  goals,
+  onSaveGoals
 }) => {
   const stats = useMemo(() => {
     const income = getMonthlyIncome(incomes, selectedMonth);
@@ -88,6 +92,33 @@ const Dashboard = ({
             {formatCurrency(stats.balance)}
           </div>
         </div>
+      </div>
+
+      {/* Metas e Alertas */}
+      <GoalsAndAlerts
+        selectedMonth={selectedMonth}
+        incomes={incomes}
+        expenses={expenses}
+        creditCardExpenses={creditCardExpenses}
+        invoiceTotals={invoiceTotals}
+        goals={goals}
+        onSaveGoals={onSaveGoals}
+      />
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyComparisonChart
+          incomes={incomes}
+          expenses={expenses}
+          creditCardExpenses={creditCardExpenses}
+          invoiceTotals={invoiceTotals}
+        />
+        <BalanceTrendChart
+          incomes={incomes}
+          expenses={expenses}
+          creditCardExpenses={creditCardExpenses}
+          invoiceTotals={invoiceTotals}
+        />
       </div>
     </div>
   );

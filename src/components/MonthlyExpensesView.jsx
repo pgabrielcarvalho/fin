@@ -131,14 +131,15 @@ const MonthlyExpensesView = ({
 
     // Copiar overrides de despesas fixas
     for (const expense of expenses) {
-      const sourceValue = expense.overrides?.[sourceMonth];
+      // Pegar o valor efetivo do mês de origem (override ou valor base)
+      const sourceValue = expense.overrides?.[sourceMonth] !== undefined
+        ? expense.overrides[sourceMonth]
+        : expense.value;
 
-      if (sourceValue !== undefined) {
-        // Havia override no mês de origem, criar override para o mês atual
-        const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
-        await onSave('expenses', { ...expense, overrides: newOverrides });
-        copiedCount++;
-      }
+      // Criar override para o mês de destino com o valor efetivo do mês de origem
+      const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
+      await onSave('expenses', { ...expense, overrides: newOverrides });
+      copiedCount++;
     }
 
     toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);

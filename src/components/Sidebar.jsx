@@ -9,10 +9,13 @@ import {
   Plane,
   LogOut,
   Menu,
-  X
+  X,
+  Download,
+  Moon,
+  Sun
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, onTabChange, user, onLogout }) => {
+const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
@@ -20,6 +23,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout }) => {
     { id: 'monthly', icon: Calendar, label: 'Despesas' },
     { id: 'credit', icon: CreditCard, label: 'Cartão' },
     { id: 'yearly', icon: BarChart3, label: 'Visão Anual' },
+    { id: 'comparison', icon: PieChart, label: 'Comparação' },
     { id: 'vacation', icon: Plane, label: 'Fundo Férias' },
   ];
 
@@ -86,7 +90,20 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout }) => {
           ))}
         </nav>
 
-        <div className="pt-4 border-t border-slate-800">
+        <div className="pt-4 border-t border-slate-800 space-y-2">
+          <button
+            onClick={onExport}
+            className="w-full p-3 rounded-lg flex items-center gap-3 text-blue-400 hover:bg-slate-800 hover:text-blue-300 transition-colors"
+          >
+            <Download size={20} /> Exportar
+          </button>
+          <button
+            onClick={onToggleDarkMode}
+            className="w-full p-3 rounded-lg flex items-center gap-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {darkMode ? 'Modo Claro' : 'Modo Escuro'}
+          </button>
           <button
             onClick={onLogout}
             className="w-full p-3 rounded-lg flex items-center gap-3 text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"

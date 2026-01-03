@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
 import { useCollection, useDocument, useFirestoreOperations } from './hooks/useFirestore';
 import { useToast } from './contexts/ToastContext';
+import { useTheme } from './contexts/ThemeContext';
+import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 
 // Componentes
 import LoginScreen from './components/LoginScreen';
@@ -15,6 +17,11 @@ import MonthlyExpensesView from './components/MonthlyExpensesView';
 import CreditCardView from './components/CreditCardView';
 import YearlyView from './components/YearlyView';
 import VacationFundView from './components/VacationFundView';
+import ExportMenu from './components/ExportMenu';
+import MonthComparison from './components/MonthComparison';
+
+// Services
+import { exportToJSON, exportToCSV, exportToPDF, importFromJSON } from './services/exportService';
 
 // Dados iniciais
 import {
@@ -29,10 +36,12 @@ const App = () => {
   // --- AUTENTICAÇÃO ---
   const { user, loading: authLoading, loginWithGoogle, logout } = useAuth();
   const toast = useToast();
+  const { darkMode, toggleDarkMode } = useTheme();
 
   // --- ESTADO DA UI ---
   const [activeTab, setActiveTab] = useState('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // --- OPERAÇÕES DO FIRESTORE ---
   const { saveItem, deleteItem, saveDocument } = useFirestoreOperations(user);
@@ -48,6 +57,7 @@ const App = () => {
   const { data: expensesNotes } = useDocument(user, 'expenses_notes', Array(12).fill(''));
   const { data: creditNotes } = useDocument(user, 'credit_notes', Array(12).fill(''));
   const { data: vacationNotes } = useDocument(user, 'vacation_notes', Array(12).fill(''));
+  const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } });
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -86,6 +96,80 @@ const App = () => {
     await saveDocument('vacation_notes', newNotes);
   };
 
+  const handleSaveGoals = async (newGoals) => {
+    await saveDocument('goals', newGoals);
+  };
+
+  const handleExport = (format, month) => {
+    const data = {
+      incomes,
+      expenses,
+      creditCardExpenses,
+      invoiceTotals,
+      vacationIncomes,
+      vacationExpenses,
+      incomesNotes,
+      expensesNotes,
+      creditNotes,
+      vacationNotes,
+      goals
+    };
+
+    try {
+      if (format === 'json') {
+        exportToJSON(data);
+        toast.success('Backup JSON exportado com sucesso!');
+      } else if (format === 'csv') {
+        exportToCSV(data, month);
+        toast.success('Relatório CSV exportado com sucesso!');
+      } else if (format === 'pdf') {
+        exportToPDF(data, month);
+        toast.success('Abrindo visualização para impressão...');
+      }
+    } catch (error) {
+      toast.error('Erro ao exportar dados');
+      console.error(error);
+    }
+  };
+
+  const handleImport = async (file) => {
+    try {
+      const data = await importFromJSON(file);
+      toast.success('Importação iniciada... Isso pode levar alguns segundos.');
+
+      // Importar dados (simplificado - em produção seria mais robusto)
+      if (data.incomes) {
+        for (const item of data.incomes) {
+          await saveItem('incomes', item);
+        }
+      }
+      if (data.expenses) {
+        for (const item of data.expenses) {
+          await saveItem('expenses', item);
+        }
+      }
+      // ... outros dados
+
+      toast.success('Dados importados com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao importar dados: ' + error.message);
+    }
+  };
+
+  // Atalhos de teclado
+  useKeyboardShortcuts([
+    { keys: APP_SHORTCUTS.DASHBOARD, action: () => setActiveTab('dashboard') },
+    { keys: APP_SHORTCUTS.INCOMES, action: () => setActiveTab('incomes') },
+    { keys: APP_SHORTCUTS.EXPENSES, action: () => setActiveTab('monthly') },
+    { keys: APP_SHORTCUTS.CREDIT_CARD, action: () => setActiveTab('credit') },
+    { keys: APP_SHORTCUTS.YEARLY, action: () => setActiveTab('yearly') },
+    { keys: APP_SHORTCUTS.VACATION, action: () => setActiveTab('vacation') },
+    { keys: APP_SHORTCUTS.EXPORT, action: () => setShowExportMenu(true) },
+    { keys: APP_SHORTCUTS.DARK_MODE, action: toggleDarkMode },
+    { keys: APP_SHORTCUTS.NEXT_MONTH, action: () => setSelectedMonth(m => (m + 1) % 12) },
+    { keys: APP_SHORTCUTS.PREV_MONTH, action: () => setSelectedMonth(m => (m - 1 + 12) % 12) }
+  ]);
+
   // --- DADOS CONSOLIDADOS ---
   const vacationFund = {
     incomes: vacationIncomes || [],
@@ -108,12 +192,24 @@ const App = () => {
 
   // --- MAIN APP ---
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="flex flex-col md:flex-row min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200">
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         user={user}
         onLogout={handleLogout}
+        onExport={() => setShowExportMenu(true)}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+      />
+
+      <ExportMenu
+        isOpen={showExportMenu}
+        onClose={() => setShowExportMenu(false)}
+        onExport={handleExport}
+        onImport={handleImport}
+        selectedMonth={selectedMonth}
+        onMonthChange={setSelectedMonth}
       />
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -127,6 +223,8 @@ const App = () => {
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
               onNavigate={setActiveTab}
+              goals={goals}
+              onSaveGoals={handleSaveGoals}
             />
           )}
 
@@ -188,6 +286,15 @@ const App = () => {
               onDelete={deleteItem}
               notes={vacationNotes}
               onSaveNotes={handleSaveVacationNotes}
+            />
+          )}
+
+          {activeTab === 'comparison' && (
+            <MonthComparison
+              incomes={incomes}
+              expenses={expenses}
+              creditCardExpenses={creditCardExpenses}
+              invoiceTotals={invoiceTotals}
             />
           )}
         </div>

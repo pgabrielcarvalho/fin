@@ -1,0 +1,201 @@
+import React from 'react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import { formatCurrency, MONTHS } from '../utils/formatters';
+import {
+  getMonthlyIncome,
+  getMonthlyFixedExpenses,
+  getMonthlyCardTotal,
+  getMonthlyBalance
+} from '../services/calculations';
+
+const COLORS = {
+  income: '#10b981',
+  expenses: '#ef4444',
+  balance: '#3b82f6',
+  card: '#8b5cf6',
+  fixed: '#f59e0b'
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+        <p className="font-semibold text-slate-800 dark:text-slate-200 mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm">
+            {entry.name}: {formatCurrency(entry.value)}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+  const data = MONTHS.map((month, index) => ({
+    name: month.substring(0, 3),
+    receitas: getMonthlyIncome(incomes, index),
+    despesas: getMonthlyFixedExpenses(expenses, index) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index),
+    saldo: getMonthlyBalance(
+      getMonthlyIncome(incomes, index),
+      getMonthlyFixedExpenses(expenses, index),
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
+    )
+  }));
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+        Comparação Mensal
+      </h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" stroke="#64748b" />
+          <YAxis stroke="#64748b" />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          <Bar dataKey="receitas" name="Receitas" fill={COLORS.income} />
+          <Bar dataKey="despesas" name="Despesas" fill={COLORS.expenses} />
+          <Bar dataKey="saldo" name="Saldo" fill={COLORS.balance} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+  const data = MONTHS.map((month, index) => ({
+    name: month.substring(0, 3),
+    saldo: getMonthlyBalance(
+      getMonthlyIncome(incomes, index),
+      getMonthlyFixedExpenses(expenses, index),
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
+    )
+  }));
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+        Tendência de Saldo
+      </h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" stroke="#64748b" />
+          <YAxis stroke="#64748b" />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="saldo"
+            name="Saldo"
+            stroke={COLORS.balance}
+            strokeWidth={3}
+            dot={{ fill: COLORS.balance, r: 5 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const ExpenseBreakdownPie = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth }) => {
+  const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth);
+  const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
+
+  const data = [
+    { name: 'Despesas Fixas', value: fixedExpenses },
+    { name: 'Cartão de Crédito', value: cardExpenses }
+  ];
+
+  const CHART_COLORS = [COLORS.fixed, COLORS.card];
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+        Distribuição de Despesas
+      </h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+            outerRadius={100}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip content={<CustomTooltip />} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const CategoryBreakdownChart = ({ creditCardExpenses, selectedMonth }) => {
+  const categoryTotals = {};
+
+  creditCardExpenses.forEach(expense => {
+    if (expense.monthsActive?.[selectedMonth]) {
+      const category = expense.category || 'Geral';
+      const value = expense.overrides?.[selectedMonth] ?? expense.value;
+      categoryTotals[category] = (categoryTotals[category] || 0) + value;
+    }
+  });
+
+  const data = Object.entries(categoryTotals)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+          Gastos por Categoria
+        </h3>
+        <p className="text-slate-500 dark:text-slate-400 text-center py-8">
+          Nenhuma despesa neste mês
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+        Gastos por Categoria
+      </h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} layout="vertical">
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis type="number" stroke="#64748b" />
+          <YAxis dataKey="name" type="category" width={100} stroke="#64748b" />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar dataKey="value" name="Valor" fill={COLORS.card} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};

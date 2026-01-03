@@ -145,14 +145,15 @@ const IncomeView = ({
 
     // 1. Copiar overrides de receitas fixas
     for (const income of fixedIncomes) {
-      const sourceValue = income.overrides?.[sourceMonth];
+      // Pegar o valor efetivo do mês de origem (override ou valor base)
+      const sourceValue = income.overrides?.[sourceMonth] !== undefined
+        ? income.overrides[sourceMonth]
+        : income.value;
 
-      if (sourceValue !== undefined) {
-        // Havia override no mês de origem, criar override para o mês atual
-        const newOverrides = { ...income.overrides, [selectedMonth]: sourceValue };
-        await onSave('incomes', { ...income, overrides: newOverrides });
-        copiedCount++;
-      }
+      // Criar override para o mês de destino com o valor efetivo do mês de origem
+      const newOverrides = { ...income.overrides, [selectedMonth]: sourceValue };
+      await onSave('incomes', { ...income, overrides: newOverrides });
+      copiedCount++;
     }
 
     // 2. Copiar receitas variáveis do mês de origem

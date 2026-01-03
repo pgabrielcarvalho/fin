@@ -4,6 +4,7 @@ import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
 import ReorderButtons from './ReorderButtons';
+import { CategoryBreakdownChart } from './Charts';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, isCardExpenseActive } from '../services/calculations';
@@ -27,8 +28,22 @@ const CreditCardView = ({
     type: 'fixed', // 'fixed', 'installment' ou 'eventual'
     installments: 2,
     lastMonth: selectedMonth,
-    month: selectedMonth
+    month: selectedMonth,
+    category: 'Geral'
   });
+
+  const categories = [
+    'Geral',
+    'Alimentação',
+    'Transporte',
+    'Saúde',
+    'Educação',
+    'Lazer',
+    'Compras',
+    'Serviços',
+    'Casa',
+    'Pets'
+  ];
 
   // Usar hook de reordenação para todos os itens cadastrados
   const { sortedItems: sortedCreditExpenses, moveItem } = useReorder(
@@ -70,7 +85,8 @@ const CreditCardView = ({
       installments: newCardExpense.type === 'installment' ? parseInt(newCardExpense.installments) : null,
       lastMonth: newCardExpense.type === 'installment' ? parseInt(newCardExpense.lastMonth) : null,
       lastYear: newCardExpense.type === 'installment' ? currentYear : null,
-      month: newCardExpense.type === 'eventual' ? parseInt(newCardExpense.month) : null
+      month: newCardExpense.type === 'eventual' ? parseInt(newCardExpense.month) : null,
+      category: newCardExpense.category
     };
 
     const validation = validateCardExpense(expenseData);
@@ -99,7 +115,8 @@ const CreditCardView = ({
         type: 'fixed',
         installments: 2,
         lastMonth: selectedMonth,
-        month: selectedMonth
+        month: selectedMonth,
+        category: 'Geral'
       });
     }
   };
@@ -149,18 +166,19 @@ const CreditCardView = ({
   const handleCopyFromMonth = async (sourceMonth) => {
     let copiedCount = 0;
 
-    // 1. Copiar overrides de despesas fixas do cartão
+    // 1. Copiar valores efetivos de despesas fixas do cartão
     const fixedExpenses = creditCardExpenses.filter(exp => !exp.type || exp.type === 'fixed');
 
     for (const expense of fixedExpenses) {
-      const sourceValue = expense.overrides?.[sourceMonth];
+      // Pegar o valor efetivo do mês de origem (override ou valor base)
+      const sourceValue = expense.overrides?.[sourceMonth] !== undefined
+        ? expense.overrides[sourceMonth]
+        : expense.value;
 
-      if (sourceValue !== undefined) {
-        // Havia override no mês de origem, criar override para o mês atual
-        const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
-        await onSave('credit_expenses', { ...expense, overrides: newOverrides });
-        copiedCount++;
-      }
+      // Criar override para o mês de destino com o valor efetivo do mês de origem
+      const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
+      await onSave('credit_expenses', { ...expense, overrides: newOverrides });
+      copiedCount++;
     }
 
     // 2. Copiar despesas eventuais do mês de origem
@@ -261,7 +279,21 @@ const CreditCardView = ({
           />
         </div>
 
-        {/* Linha 2: Tipo (Botões Toggle) */}
+        {/* Linha 2: Categoria */}
+        <div className="mb-4">
+          <label className="text-xs text-slate-500 block mb-2">Categoria</label>
+          <select
+            className="w-full p-2 rounded bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            value={newCardExpense.category}
+            onChange={e => setNewCardExpense({ ...newCardExpense, category: e.target.value })}
+          >
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Linha 3: Tipo (Botões Toggle) */}
         <div className="mb-4">
           <label className="text-xs text-slate-500 block mb-2">Tipo de Despesa</label>
           <div className="grid grid-cols-3 gap-2">
@@ -396,7 +428,12 @@ const CreditCardView = ({
                     {/* Nome e Info */}
                     <div className="flex-1">
                       <div className="font-medium text-slate-800">{item.name}</div>
-                      <div className="text-xs mt-1">
+                      <div className="text-xs mt-1 flex flex-wrap gap-1">
+                        {item.category && (
+                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
+                            {item.category}
+                          </span>
+                        )}
                         {isFixed && (
                           <>
                             <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">
@@ -475,6 +512,12 @@ const CreditCardView = ({
           )}
         </div>
       </div>
+
+      {/* Gráfico de Categorias */}
+      <CategoryBreakdownChart
+        creditCardExpenses={creditCardExpenses}
+        selectedMonth={selectedMonth}
+      />
 
       {/* Anotações do Mês */}
       <MonthlyNotes
