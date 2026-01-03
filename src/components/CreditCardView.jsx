@@ -20,9 +20,10 @@ const CreditCardView = ({
   const [newCardExpense, setNewCardExpense] = useState({
     name: '',
     value: '',
-    type: 'fixed', // 'fixed' ou 'installment'
+    type: 'fixed', // 'fixed', 'installment' ou 'eventual'
     installments: 2,
-    lastMonth: selectedMonth
+    lastMonth: selectedMonth,
+    month: selectedMonth
   });
 
   // Usar hook de reordenação para todos os itens cadastrados
@@ -54,7 +55,8 @@ const CreditCardView = ({
       type: newCardExpense.type,
       installments: newCardExpense.type === 'installment' ? parseInt(newCardExpense.installments) : null,
       lastMonth: newCardExpense.type === 'installment' ? parseInt(newCardExpense.lastMonth) : null,
-      lastYear: newCardExpense.type === 'installment' ? currentYear : null
+      lastYear: newCardExpense.type === 'installment' ? currentYear : null,
+      month: newCardExpense.type === 'eventual' ? parseInt(newCardExpense.month) : null
     };
 
     const validation = validateCardExpense(expenseData);
@@ -81,7 +83,8 @@ const CreditCardView = ({
         value: '',
         type: 'fixed',
         installments: 2,
-        lastMonth: selectedMonth
+        lastMonth: selectedMonth,
+        month: selectedMonth
       });
     }
   };
@@ -169,28 +172,39 @@ const CreditCardView = ({
         {/* Linha 2: Tipo (Botões Toggle) */}
         <div className="mb-4">
           <label className="text-xs text-slate-500 block mb-2">Tipo de Despesa</label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => setNewCardExpense({ ...newCardExpense, type: 'fixed' })}
-              className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+              className={`py-2 px-4 rounded font-medium transition-colors ${
                 newCardExpense.type === 'fixed'
                   ? 'bg-indigo-600 text-white shadow-md'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
               }`}
             >
-              Fixa (todo mês)
+              Fixa
             </button>
             <button
               type="button"
               onClick={() => setNewCardExpense({ ...newCardExpense, type: 'installment' })}
-              className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+              className={`py-2 px-4 rounded font-medium transition-colors ${
                 newCardExpense.type === 'installment'
                   ? 'bg-indigo-600 text-white shadow-md'
                   : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
               }`}
             >
               Parcelada
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewCardExpense({ ...newCardExpense, type: 'eventual' })}
+              className={`py-2 px-4 rounded font-medium transition-colors ${
+                newCardExpense.type === 'eventual'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
+              }`}
+            >
+              Eventual
             </button>
           </div>
         </div>
@@ -222,6 +236,22 @@ const CreditCardView = ({
                 ))}
               </select>
             </div>
+          </div>
+        )}
+
+        {/* Linha 3: Campo condicional para Eventual */}
+        {newCardExpense.type === 'eventual' && (
+          <div className="mb-4">
+            <label className="text-xs text-slate-500 block mb-1">Mês da Despesa</label>
+            <select
+              className="w-full p-2 rounded bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={newCardExpense.month}
+              onChange={e => setNewCardExpense({ ...newCardExpense, month: parseInt(e.target.value) })}
+            >
+              {MONTHS.map((m, i) => (
+                <option key={i} value={i}>{m}/26</option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -278,6 +308,11 @@ const CreditCardView = ({
                         {item.type === 'installment' && (
                           <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
                             {item.installments}x (última: {MONTHS[item.lastMonth]}/26)
+                          </span>
+                        )}
+                        {item.type === 'eventual' && (
+                          <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
+                            Eventual ({MONTHS[item.month]}/26)
                           </span>
                         )}
                       </div>

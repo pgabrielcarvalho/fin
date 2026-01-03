@@ -182,6 +182,12 @@ export const validateCardExpense = (cardExpense) => {
     }
   }
 
+  if (cardExpense.type === 'eventual') {
+    if (cardExpense.month === undefined || cardExpense.month < 0 || cardExpense.month > 11) {
+      errors.push('Mês da despesa eventual inválido');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors
@@ -199,6 +205,11 @@ export const isCardExpenseActive = (expense, currentMonth, currentYear = new Dat
   // Despesas sem tipo ou fixas sempre estão ativas (retrocompatibilidade)
   if (!expense.type || expense.type === 'fixed') {
     return true;
+  }
+
+  // Despesas eventuais: ativas apenas no mês especificado
+  if (expense.type === 'eventual') {
+    return expense.month === currentMonth;
   }
 
   // Despesas parceladas: verifica se ainda não passou da última parcela
