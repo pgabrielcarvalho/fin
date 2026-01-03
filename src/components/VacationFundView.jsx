@@ -102,33 +102,33 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Fundo de Férias</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Fundo de Férias</h2>
       </div>
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card de Entradas */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-600">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-600 dark:text-emerald-400">
             <TrendingUp size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Total de Entradas
           </div>
-          <div className="text-2xl font-bold text-emerald-600">
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(totals.incomeTotal)}
           </div>
         </div>
 
         {/* Card de Saídas */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500 dark:text-red-400">
             <TrendingDown size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Total de Saídas
           </div>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
             {formatCurrency(totals.expenseTotal)}
           </div>
         </div>
@@ -136,8 +136,8 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
         {/* Card de Saldo */}
         <div className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
           totals.balance >= 0
-            ? 'bg-blue-600 text-white'
-            : 'bg-red-600 text-white'
+            ? 'bg-blue-600 dark:bg-blue-700 text-white'
+            : 'bg-red-600 dark:bg-red-700 text-white'
         }`}>
           <div className="text-white/80 text-xs mb-1 font-medium">Saldo Disponível</div>
           <div className="text-2xl font-bold">
@@ -148,8 +148,8 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[500px]">
         {/* Entradas */}
-        <div className="bg-white rounded-xl shadow-sm border flex flex-col">
-          <div className="p-3 bg-emerald-50 border-b font-bold text-emerald-800">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border-b dark:border-slate-700 font-bold text-emerald-800 dark:text-emerald-300">
             Entradas
           </div>
           <div className="flex-1 overflow-auto p-4 space-y-2">
@@ -162,9 +162,9 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
                     onMoveUp={() => handleMoveIncome(item, 'up')}
                     onMoveDown={() => handleMoveIncome(item, 'down')}
                   />
-                  <span>{item.name}</span>
+                  <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
                 </div>
-                <span className="flex gap-2 font-mono font-bold text-emerald-600 items-center">
+                <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center">
                   {formatCurrency(item.value)}
                   <button onClick={() => handleDelete('vacation_incomes', item.id)}>
                     <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
@@ -173,19 +173,19 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
               </div>
             ))}
           </div>
-          <div className="p-3 border-t bg-slate-50 flex gap-2">
+          <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex gap-2">
             <input
               placeholder="Desc"
               value={newVacationIncome.name}
               onChange={e => setNewVacationIncome({ ...newVacationIncome, name: e.target.value })}
-              className="flex-1 text-sm p-1 rounded border focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
             />
             <input
               placeholder="R$"
               type="number"
               value={newVacationIncome.value}
               onChange={e => setNewVacationIncome({ ...newVacationIncome, value: e.target.value })}
-              className="w-20 text-sm p-1 rounded border focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-20 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
             />
             <button
               onClick={addIncome}
@@ -197,8 +197,8 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
         </div>
 
         {/* Saídas */}
-        <div className="bg-white rounded-xl shadow-sm border flex flex-col">
-          <div className="p-3 bg-red-50 border-b font-bold text-red-800">Saídas</div>
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col">
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border-b dark:border-slate-700 font-bold text-red-800 dark:text-red-300">Saídas</div>
           <div className="flex-1 overflow-auto p-4 space-y-2">
             {sortedExpenses.map((item, index) => (
               <div key={item.id} className="flex justify-between text-sm items-center">
@@ -209,9 +209,9 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
                     onMoveUp={() => handleMoveExpense(item, 'up')}
                     onMoveDown={() => handleMoveExpense(item, 'down')}
                   />
-                  <span>{item.name}</span>
+                  <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
                 </div>
-                <span className="flex gap-2 font-mono font-bold text-red-600 items-center">
+                <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center">
                   {formatCurrency(item.value)}
                   <button onClick={() => handleDelete('vacation_expenses', item.id)}>
                     <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
@@ -220,19 +220,19 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
               </div>
             ))}
           </div>
-          <div className="p-3 border-t bg-slate-50 flex gap-2">
+          <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex gap-2">
             <input
               placeholder="Desc"
               value={newVacationExpense.name}
               onChange={e => setNewVacationExpense({ ...newVacationExpense, name: e.target.value })}
-              className="flex-1 text-sm p-1 rounded border focus:ring-2 focus:ring-red-500 outline-none"
+              className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
             />
             <input
               placeholder="R$"
               type="number"
               value={newVacationExpense.value}
               onChange={e => setNewVacationExpense({ ...newVacationExpense, value: e.target.value })}
-              className="w-20 text-sm p-1 rounded border focus:ring-2 focus:ring-red-500 outline-none"
+              className="w-20 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
             />
             <button
               onClick={addExpense}

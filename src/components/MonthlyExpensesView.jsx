@@ -257,7 +257,7 @@ const MonthlyExpensesView = ({
               <div
                 key={expense.id}
                 className={`p-4 flex flex-col sm:flex-row justify-between items-center gap-4 ${
-                  isPaid ? 'bg-emerald-50/30' : ''
+                  isPaid ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''
                 }`}
               >
                 <div className="flex items-center gap-2 w-full sm:w-auto">
