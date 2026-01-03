@@ -149,7 +149,7 @@ const MonthlyExpensesView = ({
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Despesas</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Despesas</h2>
           <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
             onCopy={handleCopyFromMonth}
@@ -162,32 +162,32 @@ const MonthlyExpensesView = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card de Receita */}
         <div
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:border-emerald-200 transition-colors cursor-pointer"
+          className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors cursor-pointer"
           onClick={() => onNavigate?.('incomes')}
         >
           <div className="absolute top-0 right-0 p-3 opacity-10">
             <TrendingUp size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Receita Prevista
           </div>
-          <div className="text-2xl font-bold text-slate-800">
+          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
             {formatCurrency(stats.income)}
           </div>
         </div>
 
         {/* Card de Despesas */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500 dark:text-red-400">
             <TrendingDown size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Total Despesas
           </div>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
             {formatCurrency(stats.totalExpenses)}
           </div>
-          <div className="mt-1 text-[10px] text-slate-500">
+          <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
             Fixo: {formatCurrency(stats.fixedExpenses)} | Cartão:{' '}
             {formatCurrency(stats.cardExpenses)}
           </div>
@@ -197,8 +197,8 @@ const MonthlyExpensesView = ({
         <div
           className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
             stats.balance >= 0
-              ? 'bg-emerald-600 text-white'
-              : 'bg-red-600 text-white'
+              ? 'bg-emerald-600 dark:bg-emerald-700 text-white'
+              : 'bg-red-600 dark:bg-red-700 text-white'
           }`}
         >
           <div className="text-white/80 text-xs mb-1 font-medium">Resultado</div>
@@ -209,19 +209,19 @@ const MonthlyExpensesView = ({
       </div>
 
       {/* Formulário de Adição */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="text-sm font-bold text-slate-600 mb-2 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
           <Plus size={16} /> Adicionar Nova Despesa (Fixa/Recorrente)
         </h3>
         <div className="flex gap-2">
           <input
-            className="flex-1 p-2 rounded bg-slate-50 border focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
             placeholder="Nome (Ex: Clube, Curso)"
             value={newExpense.name}
             onChange={e => setNewExpense({ ...newExpense, name: e.target.value })}
           />
           <input
-            className="w-32 p-2 rounded bg-slate-50 border focus:ring-2 focus:ring-emerald-500 outline-none"
+            className="w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
             type="number"
             placeholder="Valor Base"
             value={newExpense.value}
@@ -237,10 +237,10 @@ const MonthlyExpensesView = ({
       </div>
 
       {/* Checklist de Pagamentos */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b bg-slate-50 font-bold text-slate-700 flex justify-between">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between">
           <span>Checklist de Pagamentos</span>
-          <span className="text-xs font-normal text-slate-500">
+          <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
             Edite o valor se variar este mês
           </span>
         </div>
@@ -281,7 +281,7 @@ const MonthlyExpensesView = ({
                   </button>
                   <div
                     className={`font-medium ${
-                      isPaid ? 'text-slate-400 line-through' : 'text-slate-800'
+                      isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
                     }`}
                   >
                     {expense.name}

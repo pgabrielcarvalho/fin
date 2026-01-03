@@ -184,7 +184,7 @@ const IncomeView = ({
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Gestão de Receitas</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gestão de Receitas</h2>
           <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
             onCopy={handleCopyFromMonth}
@@ -196,33 +196,33 @@ const IncomeView = ({
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card de Receitas Fixas */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-10">
             <TrendingUp size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Receitas Fixas
           </div>
-          <div className="text-2xl font-bold text-slate-800">
+          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
             {formatCurrency(totals.fixedTotal)}
           </div>
         </div>
 
         {/* Card de Receitas Variáveis */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-10">
             <TrendingUp size={60} />
           </div>
-          <div className="text-slate-500 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
             Receitas Variáveis
           </div>
-          <div className="text-2xl font-bold text-slate-800">
+          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
             {formatCurrency(totals.variableTotal)}
           </div>
         </div>
 
         {/* Card de Total */}
-        <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-sm border relative overflow-hidden">
+        <div className="bg-emerald-600 dark:bg-emerald-700 text-white p-4 rounded-xl shadow-sm border relative overflow-hidden">
           <div className="text-white/80 text-xs mb-1 font-medium">Total de Receitas</div>
           <div className="text-2xl font-bold">
             {formatCurrency(totals.totalIncome)}
@@ -232,9 +232,9 @@ const IncomeView = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Formulário de Adição */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <Plus size={20} className="text-emerald-500" /> Nova Entrada
+        <div className="lg:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-fit">
+          <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+            <Plus size={20} className="text-emerald-500 dark:text-emerald-400" /> Nova Entrada
           </h3>
           <div className="space-y-4">
             <input
@@ -242,14 +242,14 @@ const IncomeView = ({
               placeholder="Descrição"
               value={newIncome.name}
               onChange={e => setNewIncome({ ...newIncome, name: e.target.value })}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
             />
             <input
               type="number"
               placeholder="Valor"
               value={newIncome.value}
               onChange={e => setNewIncome({ ...newIncome, value: e.target.value })}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
             />
             <div className="flex gap-2">
               <button
@@ -257,7 +257,7 @@ const IncomeView = ({
                 className={`flex-1 py-2 rounded font-medium transition-colors ${
                   newIncome.type === 'fixed'
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 Fixo
@@ -267,7 +267,7 @@ const IncomeView = ({
                 className={`flex-1 py-2 rounded font-medium transition-colors ${
                   newIncome.type === 'variable'
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 Variável
@@ -277,7 +277,7 @@ const IncomeView = ({
               <select
                 value={newIncome.month}
                 onChange={e => setNewIncome({ ...newIncome, month: parseInt(e.target.value) })}
-                className="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
               >
                 {MONTHS.map((m, i) => (
                   <option key={i} value={i}>{m}</option>
@@ -296,11 +296,11 @@ const IncomeView = ({
         {/* Listagem */}
         <div className="lg:col-span-2 space-y-6">
           {/* Receitas Fixas */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div className="p-4 border-b bg-slate-50 font-bold text-slate-700">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
               Receitas Fixas
             </div>
-            <div className="divide-y">
+            <div className="divide-y dark:divide-slate-700">
               {sortedFixedIncomes.map((item, index) => {
                 const isOverridden =
                   item.overrides && item.overrides[selectedMonth] !== undefined;
@@ -319,8 +319,8 @@ const IncomeView = ({
                         onMoveDown={() => handleMoveFixed(item, 'down')}
                       />
                       <div>
-                        <div className="font-medium">{item.name}</div>
-                        <div className="text-xs text-slate-400">
+                        <div className="font-medium text-slate-800 dark:text-slate-200">{item.name}</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-500">
                           Base: {formatCurrency(item.value)}
                         </div>
                       </div>
@@ -370,13 +370,13 @@ const IncomeView = ({
           </div>
 
           {/* Receitas Variáveis */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div className="p-4 border-b bg-slate-50 font-bold text-slate-700">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
               Extras ({MONTHS[selectedMonth]})
             </div>
-            <div className="divide-y">
+            <div className="divide-y dark:divide-slate-700">
               {sortedVariableIncomes.length === 0 ? (
-                <div className="p-4 text-center text-slate-400 text-sm">
+                <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm">
                   Nenhuma receita extra neste mês
                 </div>
               ) : (
@@ -390,10 +390,10 @@ const IncomeView = ({
                         onMoveUp={() => handleMoveVariable(item, 'up')}
                         onMoveDown={() => handleMoveVariable(item, 'down')}
                       />
-                      <span className="font-medium">{item.name}</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
                     </div>
                     <div className="flex gap-4 items-center">
-                      <span className="font-mono font-bold text-blue-600">
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                         {formatCurrency(item.value)}
                       </span>
                       <button onClick={() => handleDelete(item.id)}>
