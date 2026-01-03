@@ -219,7 +219,7 @@ const CreditCardView = ({
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Cartão de Crédito</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Cartão de Crédito</h2>
           <CopyFromMonthDropdown
             selectedMonth={selectedMonth}
             onCopy={handleCopyFromMonth}
@@ -229,7 +229,7 @@ const CreditCardView = ({
       </div>
 
       {/* Card de Fatura */}
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-lg text-white">
+      <div className="bg-indigo-600 dark:bg-indigo-700 p-6 rounded-xl shadow-lg text-white">
         <h3 className="font-bold mb-4">Fechamento da Fatura ({MONTHS[selectedMonth]})</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -257,21 +257,21 @@ const CreditCardView = ({
       </div>
 
       {/* Adicionar Despesa */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-bold text-slate-700 mb-4 flex gap-2">
-          <Plus size={20} className="text-indigo-500" /> Adicionar Despesa do Cartão
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-4 flex gap-2">
+          <Plus size={20} className="text-indigo-500 dark:text-indigo-400" /> Adicionar Despesa do Cartão
         </h3>
 
         {/* Linha 1: Nome e Valor */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <input
-            className="p-2 rounded bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
             placeholder="Descrição (Ex: Netflix, Compra do Notebook)"
             value={newCardExpense.name}
             onChange={e => setNewCardExpense({ ...newCardExpense, name: e.target.value })}
           />
           <input
-            className="p-2 rounded bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
             type="number"
             placeholder="Valor da parcela (R$)"
             value={newCardExpense.value}
@@ -281,9 +281,9 @@ const CreditCardView = ({
 
         {/* Linha 2: Categoria */}
         <div className="mb-4">
-          <label className="text-xs text-slate-500 block mb-2">Categoria</label>
+          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-2">Categoria</label>
           <select
-            className="w-full p-2 rounded bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
             value={newCardExpense.category}
             onChange={e => setNewCardExpense({ ...newCardExpense, category: e.target.value })}
           >
@@ -295,7 +295,7 @@ const CreditCardView = ({
 
         {/* Linha 3: Tipo (Botões Toggle) */}
         <div className="mb-4">
-          <label className="text-xs text-slate-500 block mb-2">Tipo de Despesa</label>
+          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-2">Tipo de Despesa</label>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
@@ -388,10 +388,10 @@ const CreditCardView = ({
       </div>
 
       {/* Lista de Despesas */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-        <div className="p-4 border-b bg-slate-50 font-bold text-slate-700 flex justify-between">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between">
           <span>Despesas Cadastradas</span>
-          <span className="text-xs font-normal text-slate-500">
+          <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
             {sortedCreditExpenses.length} {sortedCreditExpenses.length === 1 ? 'item' : 'itens'}
           </span>
         </div>
@@ -427,7 +427,7 @@ const CreditCardView = ({
 
                     {/* Nome e Info */}
                     <div className="flex-1">
-                      <div className="font-medium text-slate-800">{item.name}</div>
+                      <div className="font-medium text-slate-800 dark:text-slate-200">{item.name}</div>
                       <div className="text-xs mt-1 flex flex-wrap gap-1">
                         {item.category && (
                           <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatCurrency } from '../utils/formatters';
 import { getYearlyData } from '../services/calculations';
+import { MonthlyComparisonChart, BalanceTrendChart } from './Charts';
 
 const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
   const yearData = useMemo(
@@ -18,41 +19,58 @@ const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) =>
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800">Visão Anual 2026</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual 2026</h2>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyComparisonChart
+          incomes={incomes}
+          expenses={expenses}
+          creditCardExpenses={creditCardExpenses}
+          invoiceTotals={invoiceTotals}
+        />
+        <BalanceTrendChart
+          incomes={incomes}
+          expenses={expenses}
+          creditCardExpenses={creditCardExpenses}
+          invoiceTotals={invoiceTotals}
+        />
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
+          <thead className="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 uppercase text-xs">
             <tr>
               <th className="px-4 py-3">Mês</th>
-              <th className="px-4 py-3 text-right text-emerald-600">Receita</th>
+              <th className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">Receita</th>
               <th className="px-4 py-3 text-right">Fixas</th>
               <th className="px-4 py-3 text-right">Cartão</th>
-              <th className="px-4 py-3 text-right text-red-600">Total Saídas</th>
+              <th className="px-4 py-3 text-right text-red-600 dark:text-red-400">Total Saídas</th>
               <th className="px-4 py-3 text-right font-bold">Saldo</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {yearData.map((d, i) => (
-              <tr key={i} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-700">{d.month}</td>
-                <td className="px-4 py-3 text-right font-mono text-emerald-600">
+              <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{d.month}</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(d.income)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-slate-600">
+                <td className="px-4 py-3 text-right font-mono text-slate-600 dark:text-slate-400">
                   {formatCurrency(d.fixed)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-indigo-600">
+                <td className="px-4 py-3 text-right font-mono text-indigo-600 dark:text-indigo-400">
                   {formatCurrency(d.card)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-red-600 font-bold">
+                <td className="px-4 py-3 text-right font-mono text-red-600 dark:text-red-400 font-bold">
                   {formatCurrency(d.total)}
                 </td>
                 <td
                   className={`px-4 py-3 text-right font-mono font-bold ${
                     d.balance >= 0
-                      ? 'text-emerald-600 bg-emerald-50'
-                      : 'text-red-600 bg-red-50'
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                      : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
                   }`}
                 >
                   {formatCurrency(d.balance)}
@@ -60,7 +78,7 @@ const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) =>
               </tr>
             ))}
           </tbody>
-          <tfoot className="bg-slate-100 font-bold text-slate-800">
+          <tfoot className="bg-slate-100 dark:bg-slate-700 font-bold text-slate-800 dark:text-slate-200">
             <tr>
               <td className="px-4 py-3">TOTAL</td>
               <td className="px-4 py-3 text-right">{formatCurrency(yearlyTotals.income)}</td>
