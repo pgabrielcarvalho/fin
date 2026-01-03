@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, TrendingUp } from 'lucide-react';
 import MonthSelector from './MonthSelector';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { validateIncome } from '../services/calculations';
+import { validateIncome, getMonthlyIncome } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 
 const IncomeView = ({
@@ -39,6 +39,21 @@ const IncomeView = ({
     sortedItems: sortedVariableIncomes,
     moveItem: moveVariableItem
   } = useReorder(variableIncomes, (updatedItem) => onSave('incomes', updatedItem));
+
+  // Calcular totais para os cards de resumo
+  const totals = useMemo(() => {
+    const fixedTotal = sortedFixedIncomes.reduce((acc, income) => {
+      const monthValue = income.overrides?.[selectedMonth] !== undefined
+        ? income.overrides[selectedMonth]
+        : income.value;
+      return acc + monthValue;
+    }, 0);
+
+    const variableTotal = sortedVariableIncomes.reduce((acc, income) => acc + income.value, 0);
+    const totalIncome = fixedTotal + variableTotal;
+
+    return { fixedTotal, variableTotal, totalIncome };
+  }, [sortedFixedIncomes, sortedVariableIncomes, selectedMonth]);
 
   const handleAdd = async () => {
     const validation = validateIncome({
@@ -126,6 +141,43 @@ const IncomeView = ({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Gestão de Receitas</h2>
         <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card de Receitas Fixas */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <TrendingUp size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Receitas Fixas
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {formatCurrency(totals.fixedTotal)}
+          </div>
+        </div>
+
+        {/* Card de Receitas Variáveis */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10">
+            <TrendingUp size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Receitas Variáveis
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {formatCurrency(totals.variableTotal)}
+          </div>
+        </div>
+
+        {/* Card de Total */}
+        <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-sm border relative overflow-hidden">
+          <div className="text-white/80 text-xs mb-1 font-medium">Total de Receitas</div>
+          <div className="text-2xl font-bold">
+            {formatCurrency(totals.totalIncome)}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

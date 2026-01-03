@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import ReorderButtons from './ReorderButtons';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -102,12 +102,46 @@ const VacationFundView = ({ vacationFund, onSave, onDelete }) => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Fundo de Férias</h2>
-        <div className={`text-sm px-4 py-2 rounded-full border font-bold ${
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card de Entradas */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-600">
+            <TrendingUp size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Total de Entradas
+          </div>
+          <div className="text-2xl font-bold text-emerald-600">
+            {formatCurrency(totals.incomeTotal)}
+          </div>
+        </div>
+
+        {/* Card de Saídas */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500">
+            <TrendingDown size={60} />
+          </div>
+          <div className="text-slate-500 text-xs mb-1 font-medium">
+            Total de Saídas
+          </div>
+          <div className="text-2xl font-bold text-red-600">
+            {formatCurrency(totals.expenseTotal)}
+          </div>
+        </div>
+
+        {/* Card de Saldo */}
+        <div className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
           totals.balance >= 0
-            ? 'bg-blue-50 text-blue-700 border-blue-100'
-            : 'bg-red-50 text-red-700 border-red-100'
+            ? 'bg-blue-600 text-white'
+            : 'bg-red-600 text-white'
         }`}>
-          Saldo: {formatCurrency(totals.balance)}
+          <div className="text-white/80 text-xs mb-1 font-medium">Saldo Disponível</div>
+          <div className="text-2xl font-bold">
+            {formatCurrency(totals.balance)}
+          </div>
         </div>
       </div>
 
