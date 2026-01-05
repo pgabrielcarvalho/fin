@@ -74,6 +74,9 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
           </div>
         </div>
 
+        {/* Espaçamento no mobile para não cobrir os botões com o header fixo */}
+        <div className="md:hidden h-16" />
+
         <nav className="flex flex-col gap-2 flex-1">
           {menuItems.map(item => (
             <button
