@@ -213,7 +213,7 @@ const MonthlyExpensesView = ({
         <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
           <Plus size={16} /> Adicionar Nova Despesa (Fixa/Recorrente)
         </h3>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
             placeholder="Nome (Ex: Clube, Curso)"
@@ -221,7 +221,7 @@ const MonthlyExpensesView = ({
             onChange={e => setNewExpense({ ...newExpense, name: e.target.value })}
           />
           <input
-            className="w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
+            className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
             type="number"
             placeholder="Valor Base"
             value={newExpense.value}
@@ -229,7 +229,7 @@ const MonthlyExpensesView = ({
           />
           <button
             onClick={handleAdd}
-            className="bg-emerald-600 text-white px-4 rounded font-bold hover:bg-emerald-700 transition-colors"
+            className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
           >
             Salvar
           </button>
