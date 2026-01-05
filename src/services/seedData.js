@@ -29,13 +29,13 @@ export const INITIAL_CREDIT_EXPENSES = [
 ];
 
 export const INITIAL_VACATION_INCOMES = [
-  { name: "Terço CES Abril", value: 13739.98 },
-  { name: "Férias", value: 9889.09 }
+  { name: "Entrada 1", value: 0 },
+  { name: "Entrada 2", value: 0 }
 ];
 
 export const INITIAL_VACATION_EXPENSES = [
-  { name: "Passagens Aéreas", value: 5400.00 },
-  { name: "Hospedagem", value: 3200.00 }
+  { name: "Saída 1", value: 0 },
+  { name: "Saída 2", value: 0 }
 ];
 
 export const getSeedDataForCollection = (collectionName) => {

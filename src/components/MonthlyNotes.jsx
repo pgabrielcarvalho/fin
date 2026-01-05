@@ -25,10 +25,10 @@ const MonthlyNotes = ({ selectedMonth, notes, onSave }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-slate-700 flex items-center gap-2">
-          <FileText size={20} className="text-blue-500" />
+        <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+          <FileText size={20} className="text-blue-500 dark:text-blue-400" />
           Anotações do Mês
         </h3>
         {hasChanges && (
@@ -45,10 +45,10 @@ const MonthlyNotes = ({ selectedMonth, notes, onSave }) => {
         value={noteText}
         onChange={handleChange}
         placeholder="Digite aqui informações adicionais, lembretes ou observações sobre este mês..."
-        className="w-full h-32 p-3 border border-slate-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+        className="w-full h-32 p-3 border border-slate-200 dark:border-slate-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
       />
       {hasChanges && (
-        <p className="text-xs text-amber-600 mt-2">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
           ⚠️ Você tem alterações não salvas
         </p>
       )}

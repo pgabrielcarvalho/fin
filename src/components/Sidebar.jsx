@@ -35,14 +35,14 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
   return (
     <>
       {/* Mobile: Header fixo com menu hambúrguer */}
-      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Wallet className="text-emerald-400" size={20} />
-          <h1 className="text-lg font-bold">Finanças 2026</h1>
+      <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Wallet className="text-emerald-400 flex-shrink-0" size={20} />
+          <h1 className="text-base font-bold truncate">Finanças 2026</h1>
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-2 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 ml-2"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
