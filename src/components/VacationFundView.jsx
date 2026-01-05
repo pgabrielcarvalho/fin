@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard } from 'lucide-react';
 import SimpleNotes from './SimpleNotes';
 import ReorderButtons from './ReorderButtons';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { getVacationTotals } from '../services/calculations';
@@ -11,6 +12,7 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
   const toast = useToast();
   const [newVacationIncome, setNewVacationIncome] = useState({ name: '', value: '' });
   const [newVacationExpense, setNewVacationExpense] = useState({ name: '', value: '' });
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Usar hooks de reordenação para entradas e saídas
   const {
@@ -101,8 +103,19 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Fundo de Férias</h2>
+        {/* Botão discreto para atalhos - apenas desktop */}
+        <button
+          onClick={() => setShowShortcuts(true)}
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          title="Ver atalhos de teclado"
+        >
+          <Keyboard size={14} />
+          <span>Atalhos</span>
+        </button>
       </div>
 
       {/* Cards de Resumo */}
@@ -146,7 +159,7 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[500px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[500px]">
         {/* Entradas */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col">
           <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border-b dark:border-slate-700 font-bold text-emerald-800 dark:text-emerald-300">

@@ -238,9 +238,9 @@ const MonthlyExpensesView = ({
 
       {/* Checklist de Pagamentos */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between">
+        <div className="p-3 md:p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300 flex justify-between items-center">
           <span>Checklist de Pagamentos</span>
-          <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-normal text-slate-500 dark:text-slate-400 hidden sm:inline">
             Edite o valor se variar este mês
           </span>
         </div>
@@ -256,7 +256,7 @@ const MonthlyExpensesView = ({
             return (
               <div
                 key={expense.id}
-                className={`p-4 flex flex-col sm:flex-row justify-between items-center gap-4 ${
+                className={`p-3 md:p-4 flex flex-col sm:flex-row justify-between items-center gap-2 md:gap-4 ${
                   isPaid ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''
                 }`}
               >
@@ -271,16 +271,16 @@ const MonthlyExpensesView = ({
 
                   <button
                     onClick={() => togglePaid(expense)}
-                    className={`p-2 rounded-full transition-all ${
+                    className={`p-1.5 md:p-2 rounded-full transition-all ${
                       isPaid
                         ? 'bg-emerald-500 text-white scale-110'
-                        : 'bg-slate-100 text-slate-300 hover:bg-slate-200'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >
-                    {isPaid ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+                    {isPaid ? <CheckCircle2 size={20} className="md:w-6 md:h-6" /> : <Circle size={20} className="md:w-6 md:h-6" />}
                   </button>
                   <div
-                    className={`font-medium ${
+                    className={`text-sm md:text-base font-medium ${
                       isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
                     }`}
                   >
@@ -288,25 +288,25 @@ const MonthlyExpensesView = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4">
                   <div
-                    className={`flex items-center gap-2 p-1 px-2 rounded border ${
+                    className={`flex items-center gap-1 md:gap-2 p-1 px-2 rounded border ${
                       isOverridden
-                        ? 'bg-yellow-50 border-yellow-300'
-                        : 'border-transparent hover:border-slate-200'
+                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                        : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'
                     }`}
                   >
-                    <span className="text-xs text-slate-400">R$</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">R$</span>
                     <input
                       type="number"
                       value={currentValue}
                       onChange={e => updateOverride(expense, e.target.value)}
-                      className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                      className={`w-20 md:w-24 bg-transparent text-right text-sm md:text-base font-mono font-bold outline-none ${
                         isOverridden
-                          ? 'text-yellow-700'
+                          ? 'text-yellow-700 dark:text-yellow-400'
                           : isPaid
-                          ? 'text-emerald-600'
-                          : 'text-slate-700'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-700 dark:text-slate-300'
                       }`}
                     />
                   </div>
@@ -316,13 +316,13 @@ const MonthlyExpensesView = ({
                       title="Voltar ao valor original"
                     >
                       <RotateCcw
-                        size={16}
-                        className="text-slate-400 hover:text-emerald-600"
+                        size={14}
+                        className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                       />
                     </button>
                   )}
                   <button onClick={() => handleDelete(expense.id)}>
-                    <Trash2 size={18} className="text-slate-300 hover:text-red-500" />
+                    <Trash2 size={16} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
                   </button>
                 </div>
               </div>
@@ -330,12 +330,12 @@ const MonthlyExpensesView = ({
           })}
 
           {/* Total do Cartão */}
-          <div className="p-4 flex justify-between bg-indigo-50 border-l-4 border-indigo-400">
+          <div className="p-3 md:p-4 flex justify-between bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-400 dark:border-indigo-600">
             <div className="flex items-center gap-2 pl-2">
-              <CreditCard size={20} className="text-indigo-500" />
-              <div className="font-bold text-slate-800">Cartão de Crédito (Total)</div>
+              <CreditCard size={18} className="md:w-5 md:h-5 text-indigo-500 dark:text-indigo-400" />
+              <div className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200">Cartão de Crédito (Total)</div>
             </div>
-            <div className="font-mono font-bold text-indigo-700 text-lg">
+            <div className="text-base md:text-lg font-mono font-bold text-indigo-700 dark:text-indigo-400">
               {formatCurrency(finalCardTotal)}
             </div>
           </div>
