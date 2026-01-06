@@ -256,31 +256,33 @@ const MonthlyExpensesView = ({
             return (
               <div
                 key={expense.id}
-                className={`p-3 md:p-4 flex flex-col sm:flex-row justify-between items-center gap-2 md:gap-4 ${
+                className={`p-2.5 md:p-4 flex flex-row justify-between items-center gap-1.5 md:gap-4 ${
                   isPaid ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''
                 }`}
               >
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
                   {/* Botões de reordenação */}
-                  <ReorderButtons
-                    index={index}
-                    totalItems={sortedExpenses.length}
-                    onMoveUp={() => handleMove(expense, 'up')}
-                    onMoveDown={() => handleMove(expense, 'down')}
-                  />
+                  <div className="flex-shrink-0">
+                    <ReorderButtons
+                      index={index}
+                      totalItems={sortedExpenses.length}
+                      onMoveUp={() => handleMove(expense, 'up')}
+                      onMoveDown={() => handleMove(expense, 'down')}
+                    />
+                  </div>
 
                   <button
                     onClick={() => togglePaid(expense)}
-                    className={`p-1.5 md:p-2 rounded-full transition-all ${
+                    className={`p-1.5 md:p-2 rounded-full transition-all flex-shrink-0 ${
                       isPaid
                         ? 'bg-emerald-500 text-white scale-110'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >
-                    {isPaid ? <CheckCircle2 size={20} className="md:w-6 md:h-6" /> : <Circle size={20} className="md:w-6 md:h-6" />}
+                    {isPaid ? <CheckCircle2 size={18} className="md:w-6 md:h-6" /> : <Circle size={18} className="md:w-6 md:h-6" />}
                   </button>
                   <div
-                    className={`text-sm md:text-base font-medium ${
+                    className={`text-xs md:text-base font-medium truncate ${
                       isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
                     }`}
                   >
@@ -288,20 +290,20 @@ const MonthlyExpensesView = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
+                <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
                   <div
-                    className={`flex items-center gap-1 md:gap-2 p-1 px-2 rounded border ${
+                    className={`flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border ${
                       isOverridden
                         ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
                         : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'
                     }`}
                   >
-                    <span className="text-xs text-slate-400 dark:text-slate-500">R$</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
                     <input
                       type="number"
                       value={currentValue}
                       onChange={e => updateOverride(expense, e.target.value)}
-                      className={`w-20 md:w-24 bg-transparent text-right text-sm md:text-base font-mono font-bold outline-none ${
+                      className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
                         isOverridden
                           ? 'text-yellow-700 dark:text-yellow-400'
                           : isPaid
@@ -314,15 +316,16 @@ const MonthlyExpensesView = ({
                     <button
                       onClick={() => resetOverride(expense)}
                       title="Voltar ao valor original"
+                      className="flex-shrink-0"
                     >
                       <RotateCcw
-                        size={14}
+                        size={12}
                         className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                       />
                     </button>
                   )}
-                  <button onClick={() => handleDelete(expense.id)}>
-                    <Trash2 size={16} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
+                  <button onClick={() => handleDelete(expense.id)} className="flex-shrink-0">
+                    <Trash2 size={14} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
                   </button>
                 </div>
               </div>
