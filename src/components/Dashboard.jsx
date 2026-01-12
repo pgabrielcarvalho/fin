@@ -55,7 +55,7 @@ const Dashboard = ({
             <TrendingUp size={100} />
           </div>
           <div className="text-slate-500 text-sm mb-1 font-medium">
-            Receita Prevista
+            Receita
           </div>
           <div className="text-3xl font-bold text-slate-800">
             {formatCurrency(stats.income)}
@@ -91,6 +91,11 @@ const Dashboard = ({
           <div className="text-3xl font-bold">
             {formatCurrency(stats.balance)}
           </div>
+          {stats.income > 0 && (
+            <div className="mt-2 text-sm text-white/70">
+              {((stats.balance / stats.income) * 100).toFixed(1)}% economizado
+            </div>
+          )}
         </div>
       </div>
 

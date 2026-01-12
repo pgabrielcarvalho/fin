@@ -169,7 +169,7 @@ const MonthlyExpensesView = ({
             <TrendingUp size={60} />
           </div>
           <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
-            Receita Prevista
+            Receita
           </div>
           <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
             {formatCurrency(stats.income)}
@@ -205,6 +205,11 @@ const MonthlyExpensesView = ({
           <div className="text-2xl font-bold">
             {formatCurrency(stats.balance)}
           </div>
+          {stats.income > 0 && (
+            <div className="mt-1 text-xs text-white/70">
+              {((stats.balance / stats.income) * 100).toFixed(1)}% economizado
+            </div>
+          )}
         </div>
       </div>
 

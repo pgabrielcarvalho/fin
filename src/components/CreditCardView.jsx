@@ -392,7 +392,7 @@ const CreditCardView = ({
         <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between">
           <span>Despesas Cadastradas</span>
           <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-            {sortedCreditExpenses.length} {sortedCreditExpenses.length === 1 ? 'item' : 'itens'}
+            {activeItems.length} ativas de {sortedCreditExpenses.length} {sortedCreditExpenses.length === 1 ? 'item' : 'itens'}
           </span>
         </div>
         <div className="divide-y">
@@ -409,12 +409,15 @@ const CreditCardView = ({
                 ? item.overrides[selectedMonth]
                 : item.value;
 
+              // Não renderizar despesas inativas (parceladas/eventuais passadas)
+              if (!isActive) {
+                return null;
+              }
+
               return (
                 <div
                   key={item.id}
-                  className={`p-4 flex justify-between items-center ${
-                    !isActive ? 'opacity-40' : ''
-                  }`}
+                  className="p-4 flex justify-between items-center"
                 >
                   <div className="flex items-center gap-3 flex-1">
                     {/* Botões de reordenação */}
