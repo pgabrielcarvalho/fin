@@ -3,18 +3,18 @@
  */
 
 export const INITIAL_EXPENSES = [
-  { name: "Condomínio", value: 2500.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Escola Crianças", value: 4500.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Energia Elétrica", value: 600.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Água / Saneamento", value: 180.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Gás", value: 120.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Internet / TV / Tel", value: 350.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Supermercado (Mensal)", value: 3000.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Feira / Açougue", value: 800.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Combustível", value: 800.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Seguro Auto", value: 450.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Plano de Saúde", value: 1200.00, paidStatus: Array(12).fill(false), overrides: {} },
-  { name: "Empregada / Diarista", value: 1800.00, paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Condomínio", value: 2500.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Escola Crianças", value: 4500.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Energia Elétrica", value: 600.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Água / Saneamento", value: 180.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Gás", value: 120.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Internet / TV / Tel", value: 350.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Supermercado (Mensal)", value: 3000.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Feira / Açougue", value: 800.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Combustível", value: 800.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Seguro Auto", value: 450.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Plano de Saúde", value: 1200.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
+  { name: "Empregada / Diarista", value: 1800.00, type: 'fixed', paidStatus: Array(12).fill(false), overrides: {} },
 ];
 
 export const INITIAL_INCOMES = [

@@ -23,7 +23,12 @@ const MonthlyExpensesView = ({
   onSaveNotes
 }) => {
   const toast = useToast();
-  const [newExpense, setNewExpense] = useState({ name: '', value: '' });
+  const [newExpense, setNewExpense] = useState({
+    name: '',
+    value: '',
+    type: 'fixed',
+    month: selectedMonth
+  });
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
 
@@ -49,6 +54,16 @@ const MonthlyExpensesView = ({
     onSave('expenses', updatedItem)
   );
 
+  // Filtrar despesas ativas no mês selecionado
+  const activeExpenses = useMemo(() => {
+    return sortedExpenses.filter(expense => {
+      const expenseType = expense.type || 'fixed';
+      if (expenseType === 'fixed') return true;
+      if (expenseType === 'eventual') return expense.month === selectedMonth;
+      return false;
+    });
+  }, [sortedExpenses, selectedMonth]);
+
   const handleAdd = async () => {
     const validation = validateExpense({
       ...newExpense,
@@ -64,17 +79,25 @@ const MonthlyExpensesView = ({
       Math.max(max, exp.order !== undefined ? exp.order : 0), 0
     );
 
-    const result = await onSave('expenses', {
+    const expenseData = {
       name: newExpense.name,
       value: parseFloat(newExpense.value),
+      type: newExpense.type,
       paidStatus: Array(12).fill(false),
       overrides: {},
       order: maxOrder + 1
-    });
+    };
+
+    // Adicionar o campo 'month' apenas se for eventual
+    if (newExpense.type === 'eventual') {
+      expenseData.month = newExpense.month;
+    }
+
+    const result = await onSave('expenses', expenseData);
 
     if (result.success) {
       toast.success('Despesa adicionada!');
-      setNewExpense({ name: '', value: '' });
+      setNewExpense({ name: '', value: '', type: 'fixed', month: selectedMonth });
     } else {
       toast.error(`Erro: ${result.error}`);
     }
@@ -215,29 +238,79 @@ const MonthlyExpensesView = ({
 
       {/* Formulário de Adição */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
-          <Plus size={16} /> Adicionar Nova Despesa (Fixa/Recorrente)
+        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-2">
+          <Plus size={16} /> Adicionar Nova Despesa
         </h3>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
-            placeholder="Nome (Ex: Clube, Curso)"
-            value={newExpense.name}
-            onChange={e => setNewExpense({ ...newExpense, name: e.target.value })}
-          />
-          <input
-            className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
-            type="number"
-            placeholder="Valor Base"
-            value={newExpense.value}
-            onChange={e => setNewExpense({ ...newExpense, value: e.target.value })}
-          />
+
+        {/* Toggle de Tipo */}
+        <div className="flex gap-2 mb-3">
           <button
-            onClick={handleAdd}
-            className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
+            onClick={() => setNewExpense({ ...newExpense, type: 'fixed' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newExpense.type === 'fixed'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
           >
-            Salvar
+            Fixa/Recorrente
           </button>
+          <button
+            onClick={() => setNewExpense({ ...newExpense, type: 'eventual' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newExpense.type === 'eventual'
+                ? 'bg-amber-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Eventual
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
+              placeholder={newExpense.type === 'fixed' ? "Nome (Ex: Condomínio, Clube)" : "Nome (Ex: IPVA, Material Escolar)"}
+              value={newExpense.name}
+              onChange={e => setNewExpense({ ...newExpense, name: e.target.value })}
+            />
+            <input
+              className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
+              type="number"
+              placeholder={newExpense.type === 'fixed' ? "Valor Base" : "Valor"}
+              value={newExpense.value}
+              onChange={e => setNewExpense({ ...newExpense, value: e.target.value })}
+            />
+
+            {/* Select de mês para despesas eventuais */}
+            {newExpense.type === 'eventual' && (
+              <select
+                className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
+                value={newExpense.month}
+                onChange={e => setNewExpense({ ...newExpense, month: parseInt(e.target.value) })}
+              >
+                {MONTHS.map((monthName, index) => (
+                  <option key={index} value={index}>
+                    {monthName}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <button
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
+            >
+              Salvar
+            </button>
+          </div>
+
+          {/* Dica sobre tipo de despesa */}
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {newExpense.type === 'fixed'
+              ? "Despesas fixas aparecem todos os meses"
+              : "Despesas eventuais aparecem apenas no mês selecionado"}
+          </div>
         </div>
       </div>
 
@@ -250,7 +323,7 @@ const MonthlyExpensesView = ({
           </span>
         </div>
         <div className="divide-y">
-          {sortedExpenses.map((expense, index) => {
+          {activeExpenses.map((expense, index) => {
             const isPaid = expense.paidStatus[selectedMonth];
             const isOverridden =
               expense.overrides && expense.overrides[selectedMonth] !== undefined;
@@ -266,15 +339,20 @@ const MonthlyExpensesView = ({
                 }`}
               >
                 <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
-                  {/* Botões de reordenação */}
-                  <div className="flex-shrink-0">
-                    <ReorderButtons
-                      index={index}
-                      totalItems={sortedExpenses.length}
-                      onMoveUp={() => handleMove(expense, 'up')}
-                      onMoveDown={() => handleMove(expense, 'down')}
-                    />
-                  </div>
+                  {/* Botões de reordenação - mostrar apenas para despesas fixas */}
+                  {(!expense.type || expense.type === 'fixed') && (
+                    <div className="flex-shrink-0">
+                      <ReorderButtons
+                        index={sortedExpenses.findIndex(e => e.id === expense.id)}
+                        totalItems={sortedExpenses.length}
+                        onMoveUp={() => handleMove(expense, 'up')}
+                        onMoveDown={() => handleMove(expense, 'down')}
+                      />
+                    </div>
+                  )}
+                  {expense.type === 'eventual' && (
+                    <div className="flex-shrink-0 w-[28px]" />
+                  )}
 
                   <button
                     onClick={() => togglePaid(expense)}
@@ -286,12 +364,21 @@ const MonthlyExpensesView = ({
                   >
                     {isPaid ? <CheckCircle2 size={18} className="md:w-6 md:h-6" /> : <Circle size={18} className="md:w-6 md:h-6" />}
                   </button>
-                  <div
-                    className={`text-xs md:text-base font-medium truncate ${
-                      isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
-                    }`}
-                  >
-                    {expense.name}
+                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className={`text-xs md:text-base font-medium truncate ${
+                          isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
+                        }`}
+                      >
+                        {expense.name}
+                      </div>
+                      {expense.type === 'eventual' && (
+                        <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap">
+                          {MONTHS[expense.month]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

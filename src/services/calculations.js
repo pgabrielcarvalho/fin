@@ -22,13 +22,27 @@ export const getMonthlyIncome = (incomes, monthIndex) => {
 
 /**
  * Calcula as despesas fixas de um mês específico
+ * Inclui despesas fixas (todos os meses) e despesas eventuais (mês específico)
  */
 export const getMonthlyFixedExpenses = (expenses, monthIndex) => {
   return expenses.reduce((acc, item) => {
-    const monthValue = item.overrides?.[monthIndex] !== undefined
-      ? item.overrides[monthIndex]
-      : item.value;
-    return acc + monthValue;
+    // Retrocompatibilidade: se não tem tipo, considera como 'fixed'
+    const itemType = item.type || 'fixed';
+
+    // Despesas fixas: aparecem em todos os meses
+    if (itemType === 'fixed') {
+      const monthValue = item.overrides?.[monthIndex] !== undefined
+        ? item.overrides[monthIndex]
+        : item.value;
+      return acc + monthValue;
+    }
+
+    // Despesas eventuais: apenas no mês especificado
+    if (itemType === 'eventual' && item.month === monthIndex) {
+      return acc + item.value;
+    }
+
+    return acc;
   }, 0);
 };
 
@@ -133,6 +147,11 @@ export const validateExpense = (expense) => {
 
   if (expense.value === undefined || expense.value === null || expense.value < 0) {
     errors.push('Valor deve ser maior ou igual a zero');
+  }
+
+  // Validação para despesas eventuais
+  if (expense.type === 'eventual' && (expense.month === undefined || expense.month < 0 || expense.month > 11)) {
+    errors.push('Mês inválido para despesa eventual');
   }
 
   return {
