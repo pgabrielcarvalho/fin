@@ -2,24 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
-// Configuração do Firebase usando variáveis de ambiente
+// Configuração do Firebase usando variáveis de ambiente (Vite)
 const getFirebaseConfig = () => {
-  // Tenta carregar do ambiente Vercel/Canvas primeiro
-  const envConfig = typeof window !== 'undefined' ? window.__firebase_config : null;
-  const envAppId = typeof window !== 'undefined' ? window.__app_id : null;
-
-  if (envConfig) {
-    try {
-      return {
-        config: JSON.parse(envConfig),
-        appId: envAppId || 'default-app-id'
-      };
-    } catch (e) {
-      console.error("Erro ao analisar config do ambiente:", e);
-    }
-  }
-
-  // Fallback para variáveis de ambiente do Vite
   return {
     config: {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
