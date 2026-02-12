@@ -20,8 +20,8 @@ const ReorderButtons = ({ index, totalItems, onMoveUp, onMoveDown }) => {
         disabled={isFirst}
         className={`p-0.5 rounded transition-colors ${
           isFirst
-            ? 'text-slate-300 cursor-not-allowed'
-            : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-700 dark:hover:text-slate-200'
         }`}
         title="Mover para cima"
       >
@@ -32,8 +32,8 @@ const ReorderButtons = ({ index, totalItems, onMoveUp, onMoveDown }) => {
         disabled={isLast}
         className={`p-0.5 rounded transition-colors ${
           isLast
-            ? 'text-slate-300 cursor-not-allowed'
-            : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-700 dark:hover:text-slate-200'
         }`}
         title="Mover para baixo"
       >

@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, TrendingUp, Settings2 } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
-import ReorderButtons from './ReorderButtons';
+import CategoryPicker from './CategoryPicker';
+import CategoryManager from './CategoryManager';
+import { SortableList, SortableItem, DragHandle } from './SortableList';
+import EditableValue from './EditableValue';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateIncome, getMonthlyIncome } from '../services/calculations';
@@ -16,15 +19,19 @@ const IncomeView = ({
   onSave,
   onDelete,
   notes,
-  onSaveNotes
+  onSaveNotes,
+  categories = [],
+  onSaveCategories
 }) => {
   const toast = useToast();
   const [newIncome, setNewIncome] = useState({
     name: '',
     value: '',
     type: 'fixed',
-    month: selectedMonth
+    month: selectedMonth,
+    categoryId: ''
   });
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   // Filtrar receitas por tipo
   const fixedIncomes = useMemo(() => incomes.filter(i => i.type === 'fixed'), [incomes]);
@@ -35,13 +42,11 @@ const IncomeView = ({
 
   // Usar hooks de reordenação para cada lista
   const {
-    sortedItems: sortedFixedIncomes,
-    moveItem: moveFixedItem
+    sortedItems: sortedFixedIncomes
   } = useReorder(fixedIncomes, (updatedItem) => onSave('incomes', updatedItem));
 
   const {
-    sortedItems: sortedVariableIncomes,
-    moveItem: moveVariableItem
+    sortedItems: sortedVariableIncomes
   } = useReorder(variableIncomes, (updatedItem) => onSave('incomes', updatedItem));
 
   // Calcular totais para os cards de resumo
@@ -74,46 +79,101 @@ const IncomeView = ({
       Math.max(max, inc.order !== undefined ? inc.order : 0), 0
     );
 
-    const result = await onSave('incomes', {
+    const incomeData = {
       name: newIncome.name,
       value: parseFloat(newIncome.value),
       type: newIncome.type,
       month: newIncome.type === 'variable' ? parseInt(newIncome.month) : null,
       overrides: {},
       order: maxOrder + 1
-    });
+    };
+
+    if (newIncome.categoryId) {
+      incomeData.categoryId = newIncome.categoryId;
+    }
+
+    const result = await onSave('incomes', incomeData);
 
     if (result.success) {
       toast.success('Receita adicionada com sucesso!');
-      setNewIncome({ name: '', value: '', type: 'fixed', month: selectedMonth });
+      setNewIncome({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '' });
     } else {
       toast.error(`Erro ao adicionar receita: ${result.error}`);
     }
   };
 
-  const handleMoveFixed = async (income, direction) => {
-    const result = await moveFixedItem(income, direction);
-    if (result.success) {
+  const handleMoveFixed = async (income, direction, visibleIndex) => {
+    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
+    if (newIdx < 0 || newIdx >= sortedFixedIncomes.length) return;
+
+    const neighbor = sortedFixedIncomes[newIdx];
+    const reordered = [...sortedFixedIncomes];
+    const [moved] = reordered.splice(visibleIndex, 1);
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
+
+    const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
+    try {
+      await onSave('incomes', renumbered.find(e => e.id === income.id));
+      await onSave('incomes', renumbered.find(e => e.id === neighbor.id));
       toast.success('Ordem atualizada!');
-    } else if (result.error) {
-      toast.error('Erro ao reordenar');
-    }
+    } catch { toast.error('Erro ao reordenar'); }
   };
 
-  const handleMoveVariable = async (income, direction) => {
-    const result = await moveVariableItem(income, direction);
-    if (result.success) {
+  const handleMoveVariable = async (income, direction, visibleIndex) => {
+    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
+    if (newIdx < 0 || newIdx >= sortedVariableIncomes.length) return;
+
+    const neighbor = sortedVariableIncomes[newIdx];
+    const reordered = [...sortedVariableIncomes];
+    const [moved] = reordered.splice(visibleIndex, 1);
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
+
+    const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
+    try {
+      await onSave('incomes', renumbered.find(e => e.id === income.id));
+      await onSave('incomes', renumbered.find(e => e.id === neighbor.id));
       toast.success('Ordem atualizada!');
-    } else if (result.error) {
-      toast.error('Erro ao reordenar');
-    }
+    } catch { toast.error('Erro ao reordenar'); }
   };
 
-  const updateOverride = async (income, newValueStr) => {
-    const newValue = parseFloat(newValueStr);
+  const handleCategoryChange = async (income, categoryId) => {
+    const updated = { ...income };
+    if (categoryId) {
+      updated.categoryId = categoryId;
+    } else {
+      delete updated.categoryId;
+    }
+    await onSave('incomes', updated);
+  };
+
+  const handleDragReorderFixed = async (oldIndex, newIndex) => {
+    const reordered = [...sortedFixedIncomes];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('incomes', renumbered[oldIndex]);
+      await onSave('incomes', renumbered[newIndex]);
+    } catch { /* silent */ }
+  };
+
+  const handleDragReorderVariable = async (oldIndex, newIndex) => {
+    const reordered = [...sortedVariableIncomes];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('incomes', renumbered[oldIndex]);
+      await onSave('incomes', renumbered[newIndex]);
+    } catch { /* silent */ }
+  };
+
+  const updateOverride = async (income, newValue) => {
     const newOverrides = { ...income.overrides };
 
-    if (isNaN(newValue) || newValue === income.value) {
+    if (newValue === income.value) {
       delete newOverrides[selectedMonth];
     } else {
       newOverrides[selectedMonth] = newValue;
@@ -284,6 +344,16 @@ const IncomeView = ({
                 ))}
               </select>
             )}
+            <select
+              value={newIncome.categoryId}
+              onChange={e => setNewIncome({ ...newIncome, categoryId: e.target.value })}
+              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm"
+            >
+              <option value="">Categoria</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
             <button
               onClick={handleAdd}
               className="w-full bg-emerald-600 text-white font-bold py-2 rounded hover:bg-emerald-700 transition-colors"
@@ -297,75 +367,89 @@ const IncomeView = ({
         <div className="lg:col-span-2 space-y-6">
           {/* Receitas Fixas */}
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-            <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
-              Receitas Fixas
+            <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between items-center">
+              <span>Receitas Fixas</span>
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                title="Gerenciar categorias"
+              >
+                <Settings2 size={14} />
+                <span className="hidden sm:inline">Categorias</span>
+              </button>
             </div>
             <div className="divide-y dark:divide-slate-700">
-              {sortedFixedIncomes.map((item, index) => {
-                const isOverridden =
-                  item.overrides && item.overrides[selectedMonth] !== undefined;
-                const currentValue = isOverridden
-                  ? item.overrides[selectedMonth]
-                  : item.value;
+              <SortableList items={sortedFixedIncomes} onReorder={handleDragReorderFixed}>
+                {sortedFixedIncomes.map((item) => {
+                  const isOverridden =
+                    item.overrides && item.overrides[selectedMonth] !== undefined;
+                  const currentValue = isOverridden
+                    ? item.overrides[selectedMonth]
+                    : item.value;
 
-                return (
-                  <div key={item.id} className="p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      {/* Botões de reordenação */}
-                      <ReorderButtons
-                        index={index}
-                        totalItems={sortedFixedIncomes.length}
-                        onMoveUp={() => handleMoveFixed(item, 'up')}
-                        onMoveDown={() => handleMoveFixed(item, 'down')}
-                      />
-                      <div>
-                        <div className="font-medium text-slate-800 dark:text-slate-200">{item.name}</div>
-                        <div className="text-xs text-slate-400 dark:text-slate-500">
-                          Base: {formatCurrency(item.value)}
+                  return (
+                    <SortableItem key={item.id} id={item.id}>
+                      {({ dragHandleProps }) => (
+                        <div className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
+                          <div className="flex items-center gap-2">
+                            <DragHandle {...dragHandleProps} />
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                                <CategoryPicker
+                                  categoryId={item.categoryId}
+                                  categories={categories}
+                                  onChange={(catId) => handleCategoryChange(item, catId)}
+                                />
+                              </div>
+                              <div className="text-xs text-slate-400 dark:text-slate-500">
+                                Base: {formatCurrency(item.value)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`flex items-center gap-2 p-1 rounded border ${
+                                isOverridden
+                                  ? 'bg-yellow-50 border-yellow-300'
+                                  : 'border-transparent'
+                              }`}
+                            >
+                              <span className="text-xs text-slate-400">
+                                {MONTHS[selectedMonth]}:
+                              </span>
+                              <EditableValue
+                                value={currentValue}
+                                onSave={(val) => updateOverride(item, val)}
+                                className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                                  isOverridden ? 'text-yellow-700' : 'text-emerald-600'
+                                }`}
+                              />
+                            </div>
+                            {isOverridden && (
+                              <button
+                                onClick={() => resetOverride(item)}
+                                title="Restaurar valor original"
+                              >
+                                <RotateCcw
+                                  size={16}
+                                  className="text-slate-400 hover:text-emerald-600"
+                                />
+                              </button>
+                            )}
+                            <button onClick={() => handleDelete(item.id)}>
+                              <Trash2
+                                size={18}
+                                className="text-slate-300 hover:text-red-500"
+                              />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`flex items-center gap-2 p-1 rounded border ${
-                          isOverridden
-                            ? 'bg-yellow-50 border-yellow-300'
-                            : 'border-transparent'
-                        }`}
-                      >
-                        <span className="text-xs text-slate-400">
-                          {MONTHS[selectedMonth]}:
-                        </span>
-                        <input
-                          type="number"
-                          value={currentValue}
-                          onChange={e => updateOverride(item, e.target.value)}
-                          className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
-                            isOverridden ? 'text-yellow-700' : 'text-emerald-600'
-                          }`}
-                        />
-                      </div>
-                      {isOverridden && (
-                        <button
-                          onClick={() => resetOverride(item)}
-                          title="Restaurar valor original"
-                        >
-                          <RotateCcw
-                            size={16}
-                            className="text-slate-400 hover:text-emerald-600"
-                          />
-                        </button>
                       )}
-                      <button onClick={() => handleDelete(item.id)}>
-                        <Trash2
-                          size={18}
-                          className="text-slate-300 hover:text-red-500"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    </SortableItem>
+                  );
+                })}
+              </SortableList>
             </div>
           </div>
 
@@ -380,31 +464,36 @@ const IncomeView = ({
                   Nenhuma receita extra neste mês
                 </div>
               ) : (
-                sortedVariableIncomes.map((item, index) => (
-                  <div key={item.id} className="p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      {/* Botões de reordenação */}
-                      <ReorderButtons
-                        index={index}
-                        totalItems={sortedVariableIncomes.length}
-                        onMoveUp={() => handleMoveVariable(item, 'up')}
-                        onMoveDown={() => handleMoveVariable(item, 'down')}
-                      />
-                      <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
-                    </div>
-                    <div className="flex gap-4 items-center">
-                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
-                        {formatCurrency(item.value)}
-                      </span>
-                      <button onClick={() => handleDelete(item.id)}>
-                        <Trash2
-                          size={18}
-                          className="text-slate-300 hover:text-red-500"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                <SortableList items={sortedVariableIncomes} onReorder={handleDragReorderVariable}>
+                  {sortedVariableIncomes.map((item) => (
+                    <SortableItem key={item.id} id={item.id}>
+                      {({ dragHandleProps }) => (
+                        <div className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
+                          <div className="flex items-center gap-2">
+                            <DragHandle {...dragHandleProps} />
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                            <CategoryPicker
+                              categoryId={item.categoryId}
+                              categories={categories}
+                              onChange={(catId) => handleCategoryChange(item, catId)}
+                            />
+                          </div>
+                          <div className="flex gap-4 items-center">
+                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                              {formatCurrency(item.value)}
+                            </span>
+                            <button onClick={() => handleDelete(item.id)}>
+                              <Trash2
+                                size={18}
+                                className="text-slate-300 hover:text-red-500"
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </SortableItem>
+                  ))}
+                </SortableList>
               )}
             </div>
           </div>
@@ -417,6 +506,14 @@ const IncomeView = ({
         notes={notes}
         onSave={onSaveNotes}
       />
+
+      {showCategoryManager && (
+        <CategoryManager
+          categories={categories}
+          onSave={onSaveCategories}
+          onClose={() => setShowCategoryManager(false)}
+        />
+      )}
     </div>
   );
 };

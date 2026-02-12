@@ -12,13 +12,15 @@ import {
   X,
   Download,
   Moon,
-  Sun
+  Sun,
+  LayoutDashboard
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'incomes', icon: Banknote, label: 'Receitas' },
     { id: 'monthly', icon: Calendar, label: 'Despesas' },
     { id: 'credit', icon: CreditCard, label: 'Cartão' },

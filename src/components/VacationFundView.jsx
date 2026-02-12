@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard } from 'lucide-react';
 import SimpleNotes from './SimpleNotes';
-import ReorderButtons from './ReorderButtons';
+import { SortableList, SortableItem, DragHandle } from './SortableList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
@@ -16,13 +16,11 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
 
   // Usar hooks de reordenação para entradas e saídas
   const {
-    sortedItems: sortedIncomes,
-    moveItem: moveIncome
+    sortedItems: sortedIncomes
   } = useReorder(vacationFund.incomes, (updatedItem) => onSave('vacation_incomes', updatedItem));
 
   const {
-    sortedItems: sortedExpenses,
-    moveItem: moveExpense
+    sortedItems: sortedExpenses
   } = useReorder(vacationFund.expenses, (updatedItem) => onSave('vacation_expenses', updatedItem));
 
   const totals = useMemo(
@@ -76,22 +74,62 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
     }
   };
 
-  const handleMoveIncome = async (item, direction) => {
-    const result = await moveIncome(item, direction);
-    if (result.success) {
+  const handleMoveIncome = async (item, direction, visibleIndex) => {
+    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
+    if (newIdx < 0 || newIdx >= sortedIncomes.length) return;
+
+    const neighbor = sortedIncomes[newIdx];
+    const reordered = [...sortedIncomes];
+    const [moved] = reordered.splice(visibleIndex, 1);
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
+
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('vacation_incomes', renumbered.find(e => e.id === item.id));
+      await onSave('vacation_incomes', renumbered.find(e => e.id === neighbor.id));
       toast.success('Ordem atualizada!');
-    } else if (result.error) {
-      toast.error('Erro ao reordenar');
-    }
+    } catch { toast.error('Erro ao reordenar'); }
   };
 
-  const handleMoveExpense = async (item, direction) => {
-    const result = await moveExpense(item, direction);
-    if (result.success) {
+  const handleMoveExpense = async (item, direction, visibleIndex) => {
+    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
+    if (newIdx < 0 || newIdx >= sortedExpenses.length) return;
+
+    const neighbor = sortedExpenses[newIdx];
+    const reordered = [...sortedExpenses];
+    const [moved] = reordered.splice(visibleIndex, 1);
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
+
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('vacation_expenses', renumbered.find(e => e.id === item.id));
+      await onSave('vacation_expenses', renumbered.find(e => e.id === neighbor.id));
       toast.success('Ordem atualizada!');
-    } else if (result.error) {
-      toast.error('Erro ao reordenar');
-    }
+    } catch { toast.error('Erro ao reordenar'); }
+  };
+
+  const handleDragReorderIncomes = async (oldIndex, newIndex) => {
+    const reordered = [...sortedIncomes];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('vacation_incomes', renumbered[oldIndex]);
+      await onSave('vacation_incomes', renumbered[newIndex]);
+    } catch { /* silent */ }
+  };
+
+  const handleDragReorderExpenses = async (oldIndex, newIndex) => {
+    const reordered = [...sortedExpenses];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+    try {
+      await onSave('vacation_expenses', renumbered[oldIndex]);
+      await onSave('vacation_expenses', renumbered[newIndex]);
+    } catch { /* silent */ }
   };
 
   const handleDelete = async (collection, id) => {
@@ -166,25 +204,26 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
             Entradas
           </div>
           <div className="flex-1 overflow-auto p-4 space-y-2">
-            {sortedIncomes.map((item, index) => (
-              <div key={item.id} className="flex justify-between text-sm items-center">
-                <div className="flex items-center gap-2 flex-1">
-                  <ReorderButtons
-                    index={index}
-                    totalItems={sortedIncomes.length}
-                    onMoveUp={() => handleMoveIncome(item, 'up')}
-                    onMoveDown={() => handleMoveIncome(item, 'down')}
-                  />
-                  <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
-                </div>
-                <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center">
-                  {formatCurrency(item.value)}
-                  <button onClick={() => handleDelete('vacation_incomes', item.id)}>
-                    <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
-                  </button>
-                </span>
-              </div>
-            ))}
+            <SortableList items={sortedIncomes} onReorder={handleDragReorderIncomes}>
+              {sortedIncomes.map((item) => (
+                <SortableItem key={item.id} id={item.id}>
+                  {({ dragHandleProps }) => (
+                    <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
+                      <div className="flex items-center gap-2 flex-1">
+                        <DragHandle {...dragHandleProps} />
+                        <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
+                      </div>
+                      <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center">
+                        {formatCurrency(item.value)}
+                        <button onClick={() => handleDelete('vacation_incomes', item.id)}>
+                          <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </SortableItem>
+              ))}
+            </SortableList>
           </div>
           <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex gap-2">
             <input
@@ -213,25 +252,26 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col">
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border-b dark:border-slate-700 font-bold text-red-800 dark:text-red-300">Saídas</div>
           <div className="flex-1 overflow-auto p-4 space-y-2">
-            {sortedExpenses.map((item, index) => (
-              <div key={item.id} className="flex justify-between text-sm items-center">
-                <div className="flex items-center gap-2 flex-1">
-                  <ReorderButtons
-                    index={index}
-                    totalItems={sortedExpenses.length}
-                    onMoveUp={() => handleMoveExpense(item, 'up')}
-                    onMoveDown={() => handleMoveExpense(item, 'down')}
-                  />
-                  <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
-                </div>
-                <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center">
-                  {formatCurrency(item.value)}
-                  <button onClick={() => handleDelete('vacation_expenses', item.id)}>
-                    <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
-                  </button>
-                </span>
-              </div>
-            ))}
+            <SortableList items={sortedExpenses} onReorder={handleDragReorderExpenses}>
+              {sortedExpenses.map((item) => (
+                <SortableItem key={item.id} id={item.id}>
+                  {({ dragHandleProps }) => (
+                    <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
+                      <div className="flex items-center gap-2 flex-1">
+                        <DragHandle {...dragHandleProps} />
+                        <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
+                      </div>
+                      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center">
+                        {formatCurrency(item.value)}
+                        <button onClick={() => handleDelete('vacation_expenses', item.id)}>
+                          <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                </SortableItem>
+              ))}
+            </SortableList>
           </div>
           <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex gap-2">
             <input

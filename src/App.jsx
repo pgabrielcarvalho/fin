@@ -29,7 +29,9 @@ import {
   INITIAL_INCOMES,
   INITIAL_CREDIT_EXPENSES,
   INITIAL_VACATION_INCOMES,
-  INITIAL_VACATION_EXPENSES
+  INITIAL_VACATION_EXPENSES,
+  DEFAULT_CATEGORIES,
+  DEFAULT_INCOME_CATEGORIES
 } from './services/seedData';
 
 const App = () => {
@@ -58,6 +60,8 @@ const App = () => {
   const { data: creditNotes } = useDocument(user, 'credit_notes', Array(12).fill(''));
   const { data: vacationNotes } = useDocument(user, 'vacation_notes', Array(12).fill(''));
   const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } });
+  const { data: expenseCategories } = useDocument(user, 'expense_categories', DEFAULT_CATEGORIES);
+  const { data: incomeCategories } = useDocument(user, 'income_categories', DEFAULT_INCOME_CATEGORIES);
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -98,6 +102,14 @@ const App = () => {
 
   const handleSaveGoals = async (newGoals) => {
     await saveDocument('goals', newGoals);
+  };
+
+  const handleSaveCategories = async (newCategories) => {
+    await saveDocument('expense_categories', newCategories);
+  };
+
+  const handleSaveIncomeCategories = async (newCategories) => {
+    await saveDocument('income_categories', newCategories);
   };
 
   const handleExport = (format, month) => {
@@ -225,6 +237,7 @@ const App = () => {
               onNavigate={setActiveTab}
               goals={goals}
               onSaveGoals={handleSaveGoals}
+              categories={expenseCategories}
             />
           )}
 
@@ -237,6 +250,8 @@ const App = () => {
               onDelete={deleteItem}
               notes={incomesNotes}
               onSaveNotes={handleSaveIncomesNotes}
+              categories={incomeCategories}
+              onSaveCategories={handleSaveIncomeCategories}
             />
           )}
 
@@ -253,6 +268,8 @@ const App = () => {
               onNavigate={setActiveTab}
               notes={expensesNotes}
               onSaveNotes={handleSaveExpensesNotes}
+              categories={expenseCategories}
+              onSaveCategories={handleSaveCategories}
             />
           )}
 
@@ -267,6 +284,8 @@ const App = () => {
               onSaveInvoiceTotal={handleSaveInvoiceTotal}
               notes={creditNotes}
               onSaveNotes={handleSaveCreditNotes}
+              categories={expenseCategories}
+              onSaveCategories={handleSaveCategories}
             />
           )}
 

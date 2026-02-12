@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2 } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
-import ReorderButtons from './ReorderButtons';
+import CategoryPicker from './CategoryPicker';
+import CategoryManager from './CategoryManager';
+import { SortableList, SortableItem, DragHandle } from './SortableList';
+import EditableValue from './EditableValue';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateExpense, getMonthlyCardTotal, getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyBalance } from '../services/calculations';
@@ -20,15 +23,20 @@ const MonthlyExpensesView = ({
   onDelete,
   onNavigate,
   notes,
-  onSaveNotes
+  onSaveNotes,
+  categories = [],
+  onSaveCategories
 }) => {
   const toast = useToast();
   const [newExpense, setNewExpense] = useState({
     name: '',
     value: '',
     type: 'fixed',
-    month: selectedMonth
+    month: selectedMonth,
+    categoryId: ''
   });
+  const [groupByCategory, setGroupByCategory] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
 
@@ -50,7 +58,7 @@ const MonthlyExpensesView = ({
   }, [selectedMonth, incomes, expenses, creditCardExpenses, invoiceTotals]);
 
   // Usar o hook de reordenação
-  const { sortedItems: sortedExpenses, moveItem } = useReorder(expenses, (updatedItem) =>
+  const { sortedItems: sortedExpenses } = useReorder(expenses, (updatedItem) =>
     onSave('expenses', updatedItem)
   );
 
@@ -88,6 +96,10 @@ const MonthlyExpensesView = ({
       order: maxOrder + 1
     };
 
+    if (newExpense.categoryId) {
+      expenseData.categoryId = newExpense.categoryId;
+    }
+
     // Adicionar o campo 'month' apenas se for eventual
     if (newExpense.type === 'eventual') {
       expenseData.month = newExpense.month;
@@ -97,21 +109,64 @@ const MonthlyExpensesView = ({
 
     if (result.success) {
       toast.success('Despesa adicionada!');
-      setNewExpense({ name: '', value: '', type: 'fixed', month: selectedMonth });
+      setNewExpense({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '' });
     } else {
       toast.error(`Erro: ${result.error}`);
     }
   };
 
-  const handleMove = async (expense, direction) => {
-    const result = await moveItem(expense, direction);
-    if (result.success) {
+  const handleMove = async (expense, direction, visibleIndex) => {
+    const newVisibleIndex = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
+    if (newVisibleIndex < 0 || newVisibleIndex >= activeExpenses.length) return;
+
+    const neighbor = activeExpenses[newVisibleIndex];
+
+    // Encontrar posições globais em sortedExpenses
+    const globalIdx = sortedExpenses.findIndex(e => e.id === expense.id);
+    const globalNeighborIdx = sortedExpenses.findIndex(e => e.id === neighbor.id);
+
+    // Fazer splice na lista global completa
+    const reordered = [...sortedExpenses];
+    const [moved] = reordered.splice(globalIdx, 1);
+    // Inserir na posição do vizinho (ajustar se necessário)
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
+
+    // Renumerar tudo sequencialmente
+    const renumbered = reordered.map((item, idx) => ({
+      ...item,
+      order: idx + 1
+    }));
+
+    // Encontrar os itens atualizados para salvar
+    const updatedExpense = renumbered.find(e => e.id === expense.id);
+    const updatedNeighbor = renumbered.find(e => e.id === neighbor.id);
+
+    try {
+      await onSave('expenses', updatedExpense);
+      await onSave('expenses', updatedNeighbor);
       toast.success('Ordem atualizada!');
-    } else if (result.message) {
-      // Mensagem informativa, não erro
-    } else if (result.error) {
+    } catch (error) {
       toast.error('Erro ao reordenar');
     }
+  };
+
+  const handleDragReorder = async (oldIndex, newIndex) => {
+    const item = activeExpenses[oldIndex];
+    const neighbor = activeExpenses[newIndex];
+
+    const globalIdx = sortedExpenses.findIndex(e => e.id === item.id);
+    const reordered = [...sortedExpenses];
+    const [moved] = reordered.splice(globalIdx, 1);
+    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
+    reordered.splice(oldIndex < newIndex ? insertAt + 1 : insertAt, 0, moved);
+
+    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
+
+    try {
+      await onSave('expenses', renumbered.find(e => e.id === item.id));
+      await onSave('expenses', renumbered.find(e => e.id === neighbor.id));
+    } catch { /* silent */ }
   };
 
   const togglePaid = async (expense) => {
@@ -120,11 +175,10 @@ const MonthlyExpensesView = ({
     await onSave('expenses', { ...expense, paidStatus: newStatus });
   };
 
-  const updateOverride = async (expense, newValueStr) => {
-    const newValue = parseFloat(newValueStr);
+  const updateOverride = async (expense, newValue) => {
     const newOverrides = { ...expense.overrides } || {};
 
-    if (isNaN(newValue) || newValue === expense.value) {
+    if (newValue === expense.value) {
       delete newOverrides[selectedMonth];
     } else {
       newOverrides[selectedMonth] = newValue;
@@ -166,6 +220,155 @@ const MonthlyExpensesView = ({
     }
 
     toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);
+  };
+
+  const handleCategoryChange = async (expense, categoryId) => {
+    const updated = { ...expense };
+    if (categoryId) {
+      updated.categoryId = categoryId;
+    } else {
+      delete updated.categoryId;
+    }
+    await onSave('expenses', updated);
+  };
+
+  // Agrupar despesas por categoria
+  const groupedExpenses = useMemo(() => {
+    if (!groupByCategory) return null;
+
+    const groups = {};
+    const uncategorized = [];
+
+    activeExpenses.forEach(expense => {
+      if (expense.categoryId) {
+        if (!groups[expense.categoryId]) {
+          const cat = categories.find(c => c.id === expense.categoryId);
+          groups[expense.categoryId] = {
+            category: cat || { id: expense.categoryId, name: 'Desconhecida', color: '#94a3b8' },
+            expenses: [],
+            total: 0
+          };
+        }
+        const value = expense.overrides?.[selectedMonth] !== undefined
+          ? expense.overrides[selectedMonth]
+          : expense.value;
+        groups[expense.categoryId].expenses.push(expense);
+        groups[expense.categoryId].total += value;
+      } else {
+        uncategorized.push(expense);
+      }
+    });
+
+    const sorted = Object.values(groups).sort((a, b) => (a.category.order || 99) - (b.category.order || 99));
+
+    if (uncategorized.length > 0) {
+      const uncatTotal = uncategorized.reduce((sum, exp) => {
+        const val = exp.overrides?.[selectedMonth] !== undefined ? exp.overrides[selectedMonth] : exp.value;
+        return sum + val;
+      }, 0);
+      sorted.push({
+        category: { id: '_uncategorized', name: 'Sem Categoria', color: '#94a3b8' },
+        expenses: uncategorized,
+        total: uncatTotal
+      });
+    }
+
+    return sorted;
+  }, [activeExpenses, groupByCategory, categories, selectedMonth]);
+
+  // Renderizar uma linha de despesa (reutilizado em ambas as visões)
+  const renderExpenseRow = (expense, dragHandleProps) => {
+    const isPaid = expense.paidStatus[selectedMonth];
+    const isOverridden = expense.overrides && expense.overrides[selectedMonth] !== undefined;
+    const currentValue = isOverridden ? expense.overrides[selectedMonth] : expense.value;
+    const category = categories.find(c => c.id === expense.categoryId);
+
+    return (
+      <div
+        className={`p-2.5 md:p-4 flex flex-row justify-between items-center gap-1.5 md:gap-4 bg-white dark:bg-slate-800 ${
+          isPaid ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''
+        }`}
+        style={category && !groupByCategory ? { borderLeft: `3px solid ${category.color}` } : undefined}
+      >
+        <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
+          {!groupByCategory && dragHandleProps && (
+            <div className="flex-shrink-0">
+              <DragHandle {...dragHandleProps} />
+            </div>
+          )}
+
+          <button
+            onClick={() => togglePaid(expense)}
+            className={`p-1.5 md:p-2 rounded-full transition-all flex-shrink-0 ${
+              isPaid
+                ? 'bg-emerald-500 text-white scale-110'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            {isPaid ? <CheckCircle2 size={18} className="md:w-6 md:h-6" /> : <Circle size={18} className="md:w-6 md:h-6" />}
+          </button>
+          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`text-xs md:text-base font-medium truncate ${
+                  isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
+                }`}
+              >
+                {expense.name}
+              </div>
+              {expense.type === 'eventual' && (
+                <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap">
+                  {MONTHS[expense.month]}
+                </span>
+              )}
+              <CategoryPicker
+                categoryId={expense.categoryId}
+                categories={categories}
+                onChange={(catId) => handleCategoryChange(expense, catId)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          <div
+            className={`flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border ${
+              isOverridden
+                ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'
+            }`}
+          >
+            <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
+            <EditableValue
+              value={currentValue}
+              onSave={(val) => updateOverride(expense, val)}
+              className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
+                isOverridden
+                  ? 'text-yellow-700 dark:text-yellow-400'
+                  : isPaid
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-slate-700 dark:text-slate-300'
+              }`}
+            />
+          </div>
+          {isOverridden && (
+            <button
+              onClick={() => resetOverride(expense)}
+              title="Voltar ao valor original"
+              className="flex-shrink-0"
+            >
+              <RotateCcw
+                size={12}
+                className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+              />
+            </button>
+          )}
+          <button onClick={() => handleDelete(expense.id)} className="flex-shrink-0">
+            <Trash2 size={14} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -297,6 +500,18 @@ const MonthlyExpensesView = ({
               </select>
             )}
 
+            {/* Select de categoria */}
+            <select
+              className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
+              value={newExpense.categoryId}
+              onChange={e => setNewExpense({ ...newExpense, categoryId: e.target.value })}
+            >
+              <option value="">Categoria</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+
             <button
               onClick={handleAdd}
               className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
@@ -318,111 +533,69 @@ const MonthlyExpensesView = ({
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="p-3 md:p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-sm md:text-base text-slate-700 dark:text-slate-300 flex justify-between items-center">
           <span>Checklist de Pagamentos</span>
-          <span className="text-xs font-normal text-slate-500 dark:text-slate-400 hidden sm:inline">
-            Edite o valor se variar este mês
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setGroupByCategory(!groupByCategory)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                groupByCategory
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
+              }`}
+              title="Agrupar por categoria"
+            >
+              <Layers size={14} />
+              <span className="hidden sm:inline">Agrupar</span>
+            </button>
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+              title="Gerenciar categorias"
+            >
+              <Settings2 size={14} />
+              <span className="hidden sm:inline">Categorias</span>
+            </button>
+          </div>
         </div>
-        <div className="divide-y">
-          {activeExpenses.map((expense, index) => {
-            const isPaid = expense.paidStatus[selectedMonth];
-            const isOverridden =
-              expense.overrides && expense.overrides[selectedMonth] !== undefined;
-            const currentValue = isOverridden
-              ? expense.overrides[selectedMonth]
-              : expense.value;
-
-            return (
-              <div
-                key={expense.id}
-                className={`p-2.5 md:p-4 flex flex-row justify-between items-center gap-1.5 md:gap-4 ${
-                  isPaid ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''
-                }`}
-              >
-                <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
-                  {/* Botões de reordenação - mostrar apenas para despesas fixas */}
-                  {(!expense.type || expense.type === 'fixed') && (
-                    <div className="flex-shrink-0">
-                      <ReorderButtons
-                        index={sortedExpenses.findIndex(e => e.id === expense.id)}
-                        totalItems={sortedExpenses.length}
-                        onMoveUp={() => handleMove(expense, 'up')}
-                        onMoveDown={() => handleMove(expense, 'down')}
-                      />
-                    </div>
-                  )}
-                  {expense.type === 'eventual' && (
-                    <div className="flex-shrink-0 w-[28px]" />
-                  )}
-
-                  <button
-                    onClick={() => togglePaid(expense)}
-                    className={`p-1.5 md:p-2 rounded-full transition-all flex-shrink-0 ${
-                      isPaid
-                        ? 'bg-emerald-500 text-white scale-110'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                    }`}
-                  >
-                    {isPaid ? <CheckCircle2 size={18} className="md:w-6 md:h-6" /> : <Circle size={18} className="md:w-6 md:h-6" />}
-                  </button>
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className={`text-xs md:text-base font-medium truncate ${
-                          isPaid ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
-                        {expense.name}
-                      </div>
-                      {expense.type === 'eventual' && (
-                        <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap">
-                          {MONTHS[expense.month]}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                  <div
-                    className={`flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border ${
-                      isOverridden
-                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                        : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
-                    <input
-                      type="number"
-                      value={currentValue}
-                      onChange={e => updateOverride(expense, e.target.value)}
-                      className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
-                        isOverridden
-                          ? 'text-yellow-700 dark:text-yellow-400'
-                          : isPaid
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
+        <div className="divide-y dark:divide-slate-700">
+          {groupByCategory && groupedExpenses ? (
+            groupedExpenses.map(group => (
+              <div key={group.category.id}>
+                <div
+                  className="px-3 md:px-4 py-2 flex justify-between items-center"
+                  style={{ backgroundColor: group.category.color + '15', borderLeft: `3px solid ${group.category.color}` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: group.category.color }}
                     />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {group.category.name}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      ({group.expenses.length})
+                    </span>
                   </div>
-                  {isOverridden && (
-                    <button
-                      onClick={() => resetOverride(expense)}
-                      title="Voltar ao valor original"
-                      className="flex-shrink-0"
-                    >
-                      <RotateCcw
-                        size={12}
-                        className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                      />
-                    </button>
+                  <span className="text-sm font-mono font-bold text-slate-600 dark:text-slate-400">
+                    {formatCurrency(group.total)}
+                  </span>
+                </div>
+                <div className="divide-y dark:divide-slate-700">
+                  {group.expenses.map((expense) =>
+                    <div key={expense.id}>{renderExpenseRow(expense, null)}</div>
                   )}
-                  <button onClick={() => handleDelete(expense.id)} className="flex-shrink-0">
-                    <Trash2 size={14} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
-                  </button>
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            <SortableList items={activeExpenses} onReorder={handleDragReorder}>
+              {activeExpenses.map((expense) => (
+                <SortableItem key={expense.id} id={expense.id}>
+                  {({ dragHandleProps }) => renderExpenseRow(expense, dragHandleProps)}
+                </SortableItem>
+              ))}
+            </SortableList>
+          )}
 
           {/* Total do Cartão */}
           <div className="p-3 md:p-4 flex justify-between bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-400 dark:border-indigo-600">
@@ -443,6 +616,15 @@ const MonthlyExpensesView = ({
         notes={notes}
         onSave={onSaveNotes}
       />
+
+      {/* Modal de Gerenciamento de Categorias */}
+      {showCategoryManager && (
+        <CategoryManager
+          categories={categories}
+          onSave={onSaveCategories}
+          onClose={() => setShowCategoryManager(false)}
+        />
+      )}
     </div>
   );
 };
