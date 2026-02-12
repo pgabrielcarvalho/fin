@@ -134,11 +134,189 @@ export const useDocument = (user, docPath, defaultValue = null) => {
 };
 
 /**
+ * Hook lazy para coleções - só cria listener quando enabled=true
+ */
+export const useLazyCollection = (user, collectionName, enabled, seedData = null) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!user || !enabled) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const collectionRef = collection(
+      db,
+      'artifacts',
+      appId,
+      'users',
+      user.uid,
+      collectionName
+    );
+
+    const q = query(collectionRef);
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        if (items.length === 0 && seedData) {
+          const shouldSeed = !localStorage.getItem(
+            `seeded_${collectionName}_v5_${user.uid}`
+          );
+
+          if (shouldSeed) {
+            seedCollection(user.uid, collectionName, seedData);
+            localStorage.setItem(
+              `seeded_${collectionName}_v5_${user.uid}`,
+              'true'
+            );
+          }
+        }
+
+        setData(items);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error(`Erro ao carregar ${collectionName}:`, err);
+        setError(err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user, collectionName, enabled]);
+
+  return { data, loading, error };
+};
+
+/**
+ * Hook lazy para documentos - só cria listener quando enabled=true
+ */
+export const useLazyDocument = (user, docPath, enabled, defaultValue = null) => {
+  const [data, setData] = useState(defaultValue);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!user || !enabled) {
+      setData(defaultValue);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const docRef = doc(
+      db,
+      'artifacts',
+      appId,
+      'users',
+      user.uid,
+      'general',
+      docPath
+    );
+
+    const unsubscribe = onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setData(docSnap.data().data);
+        } else if (defaultValue !== null) {
+          setDoc(docRef, { data: defaultValue }).catch(e =>
+            console.error("Erro ao criar documento:", e)
+          );
+          setData(defaultValue);
+        }
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error(`Erro ao carregar documento ${docPath}:`, err);
+        setError(err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user, docPath, enabled]);
+
+  return { data, loading, error };
+};
+
+/**
  * Hook para operações CRUD
  */
 export const useFirestoreOperations = (user) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  /**
+   * Salva múltiplos itens em batch (máx 500 ops por batch)
+   */
+  const batchSaveItems = useCallback(async (items) => {
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Chunk em grupos de 500 (limite do Firestore)
+      const BATCH_LIMIT = 500;
+      for (let i = 0; i < items.length; i += BATCH_LIMIT) {
+        const chunk = items.slice(i, i + BATCH_LIMIT);
+        const batch = writeBatch(db);
+
+        for (const { collectionName, item } of chunk) {
+          let docRef;
+
+          if (item.id) {
+            docRef = doc(
+              db,
+              'artifacts',
+              appId,
+              'users',
+              user.uid,
+              collectionName,
+              item.id
+            );
+          } else {
+            docRef = doc(
+              collection(db, 'artifacts', appId, 'users', user.uid, collectionName)
+            );
+          }
+
+          const { id, ...data } = item;
+          batch.set(docRef, data);
+        }
+
+        await batch.commit();
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error("Erro ao salvar batch:", err);
+      setError(err);
+      return {
+        success: false,
+        error: err.message
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   /**
    * Salva um item em uma coleção
@@ -254,6 +432,7 @@ export const useFirestoreOperations = (user) => {
 
   return {
     saveItem,
+    batchSaveItems,
     deleteItem,
     saveDocument,
     loading,

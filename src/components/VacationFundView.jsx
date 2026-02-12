@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import { getVacationTotals } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 
-const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }) => {
+const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, onSaveNotes }) => {
   const toast = useToast();
   const [newVacationIncome, setNewVacationIncome] = useState({ name: '', value: '' });
   const [newVacationExpense, setNewVacationExpense] = useState({ name: '', value: '' });
@@ -86,8 +86,10 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
 
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('vacation_incomes', renumbered.find(e => e.id === item.id));
-      await onSave('vacation_incomes', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'vacation_incomes', item: renumbered.find(e => e.id === item.id) },
+        { collectionName: 'vacation_incomes', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
       toast.success('Ordem atualizada!');
     } catch { toast.error('Erro ao reordenar'); }
   };
@@ -104,8 +106,10 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
 
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('vacation_expenses', renumbered.find(e => e.id === item.id));
-      await onSave('vacation_expenses', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'vacation_expenses', item: renumbered.find(e => e.id === item.id) },
+        { collectionName: 'vacation_expenses', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
       toast.success('Ordem atualizada!');
     } catch { toast.error('Erro ao reordenar'); }
   };
@@ -116,8 +120,10 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
     reordered.splice(newIndex, 0, moved);
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('vacation_incomes', renumbered[oldIndex]);
-      await onSave('vacation_incomes', renumbered[newIndex]);
+      await onBatchSave([
+        { collectionName: 'vacation_incomes', item: renumbered[oldIndex] },
+        { collectionName: 'vacation_incomes', item: renumbered[newIndex] }
+      ]);
     } catch { /* silent */ }
   };
 
@@ -127,8 +133,10 @@ const VacationFundView = ({ vacationFund, onSave, onDelete, notes, onSaveNotes }
     reordered.splice(newIndex, 0, moved);
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('vacation_expenses', renumbered[oldIndex]);
-      await onSave('vacation_expenses', renumbered[newIndex]);
+      await onBatchSave([
+        { collectionName: 'vacation_expenses', item: renumbered[oldIndex] },
+        { collectionName: 'vacation_expenses', item: renumbered[newIndex] }
+      ]);
     } catch { /* silent */ }
   };
 

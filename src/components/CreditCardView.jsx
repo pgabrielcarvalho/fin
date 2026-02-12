@@ -19,6 +19,7 @@ const CreditCardView = ({
   creditCardExpenses,
   invoiceTotals,
   onSave,
+  onBatchSave,
   onDelete,
   onSaveInvoiceTotal,
   notes,
@@ -175,8 +176,10 @@ const CreditCardView = ({
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
 
     try {
-      await onSave('credit_expenses', renumbered.find(e => e.id === item.id));
-      await onSave('credit_expenses', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === item.id) },
+        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
       toast.success('Ordem atualizada!');
     } catch { toast.error('Erro ao reordenar'); }
   };
@@ -193,8 +196,10 @@ const CreditCardView = ({
 
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('credit_expenses', renumbered.find(e => e.id === item.id));
-      await onSave('credit_expenses', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === item.id) },
+        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
     } catch { /* silent */ }
   };
 
@@ -233,21 +238,18 @@ const CreditCardView = ({
   };
 
   const handleCopyFromMonth = async (sourceMonth) => {
-    let copiedCount = 0;
+    const batchItems = [];
 
     // 1. Copiar valores efetivos de despesas fixas do cartão
     const fixedExpenses = creditCardExpenses.filter(exp => !exp.type || exp.type === 'fixed');
 
     for (const expense of fixedExpenses) {
-      // Pegar o valor efetivo do mês de origem (override ou valor base)
       const sourceValue = expense.overrides?.[sourceMonth] !== undefined
         ? expense.overrides[sourceMonth]
         : expense.value;
 
-      // Criar override para o mês de destino com o valor efetivo do mês de origem
       const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
-      await onSave('credit_expenses', { ...expense, overrides: newOverrides });
-      copiedCount++;
+      batchItems.push({ collectionName: 'credit_expenses', item: { ...expense, overrides: newOverrides } });
     }
 
     // 2. Copiar despesas eventuais do mês de origem
@@ -255,24 +257,33 @@ const CreditCardView = ({
       exp => exp.type === 'eventual' && exp.month === sourceMonth
     );
 
-    for (const expense of sourceEventualExpenses) {
-      const maxOrder = creditCardExpenses.reduce(
-        (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
-        0
-      );
+    let maxOrder = creditCardExpenses.reduce(
+      (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
+      0
+    );
 
-      await onSave('credit_expenses', {
-        name: expense.name,
-        value: expense.value,
-        type: 'eventual',
-        month: selectedMonth,
-        overrides: {},
-        order: maxOrder + 1
+    for (const expense of sourceEventualExpenses) {
+      maxOrder++;
+      batchItems.push({
+        collectionName: 'credit_expenses',
+        item: {
+          name: expense.name,
+          value: expense.value,
+          type: 'eventual',
+          month: selectedMonth,
+          overrides: {},
+          order: maxOrder
+        }
       });
-      copiedCount++;
     }
 
-    // 3. Copiar o valor manual da fatura (se houver)
+    if (batchItems.length > 0) {
+      await onBatchSave(batchItems);
+    }
+
+    let copiedCount = batchItems.length;
+
+    // 3. Copiar o valor manual da fatura (se houver) - documento separado, não vai no batch
     const sourceInvoiceTotal = invoiceTotals?.[sourceMonth];
     if (sourceInvoiceTotal && sourceInvoiceTotal > 0) {
       const newTotals = [...(invoiceTotals || Array(12).fill(0))];

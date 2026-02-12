@@ -20,6 +20,7 @@ const MonthlyExpensesView = ({
   creditCardExpenses,
   invoiceTotals,
   onSave,
+  onBatchSave,
   onDelete,
   onNavigate,
   notes,
@@ -143,8 +144,10 @@ const MonthlyExpensesView = ({
     const updatedNeighbor = renumbered.find(e => e.id === neighbor.id);
 
     try {
-      await onSave('expenses', updatedExpense);
-      await onSave('expenses', updatedNeighbor);
+      await onBatchSave([
+        { collectionName: 'expenses', item: updatedExpense },
+        { collectionName: 'expenses', item: updatedNeighbor }
+      ]);
       toast.success('Ordem atualizada!');
     } catch (error) {
       toast.error('Erro ao reordenar');
@@ -164,8 +167,10 @@ const MonthlyExpensesView = ({
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
 
     try {
-      await onSave('expenses', renumbered.find(e => e.id === item.id));
-      await onSave('expenses', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'expenses', item: renumbered.find(e => e.id === item.id) },
+        { collectionName: 'expenses', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
     } catch { /* silent */ }
   };
 
@@ -204,22 +209,22 @@ const MonthlyExpensesView = ({
   };
 
   const handleCopyFromMonth = async (sourceMonth) => {
-    let copiedCount = 0;
+    const batchItems = [];
 
-    // Copiar overrides de despesas fixas
     for (const expense of expenses) {
-      // Pegar o valor efetivo do mês de origem (override ou valor base)
       const sourceValue = expense.overrides?.[sourceMonth] !== undefined
         ? expense.overrides[sourceMonth]
         : expense.value;
 
-      // Criar override para o mês de destino com o valor efetivo do mês de origem
       const newOverrides = { ...expense.overrides, [selectedMonth]: sourceValue };
-      await onSave('expenses', { ...expense, overrides: newOverrides });
-      copiedCount++;
+      batchItems.push({ collectionName: 'expenses', item: { ...expense, overrides: newOverrides } });
     }
 
-    toast.success(`${copiedCount} ${copiedCount === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);
+    if (batchItems.length > 0) {
+      await onBatchSave(batchItems);
+    }
+
+    toast.success(`${batchItems.length} ${batchItems.length === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);
   };
 
   const handleCategoryChange = async (expense, categoryId) => {

@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
-import { useCollection, useDocument, useFirestoreOperations } from './hooks/useFirestore';
+import { useCollection, useDocument, useLazyCollection, useLazyDocument, useFirestoreOperations } from './hooks/useFirestore';
 import { useToast } from './contexts/ToastContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
@@ -46,22 +46,24 @@ const App = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   // --- OPERAÇÕES DO FIRESTORE ---
-  const { saveItem, deleteItem, saveDocument } = useFirestoreOperations(user);
+  const { saveItem, batchSaveItems, deleteItem, saveDocument } = useFirestoreOperations(user);
 
-  // --- DADOS DO FIRESTORE ---
+  // --- DADOS DO FIRESTORE (sempre ativos) ---
   const { data: incomes } = useCollection(user, 'incomes', INITIAL_INCOMES);
   const { data: expenses } = useCollection(user, 'expenses', INITIAL_EXPENSES);
   const { data: creditCardExpenses } = useCollection(user, 'credit_expenses', INITIAL_CREDIT_EXPENSES);
-  const { data: vacationIncomes } = useCollection(user, 'vacation_incomes', INITIAL_VACATION_INCOMES);
-  const { data: vacationExpenses } = useCollection(user, 'vacation_expenses', INITIAL_VACATION_EXPENSES);
   const { data: invoiceTotals } = useDocument(user, 'invoice_totals', Array(12).fill(0));
-  const { data: incomesNotes } = useDocument(user, 'incomes_notes', Array(12).fill(''));
-  const { data: expensesNotes } = useDocument(user, 'expenses_notes', Array(12).fill(''));
-  const { data: creditNotes } = useDocument(user, 'credit_notes', Array(12).fill(''));
-  const { data: vacationNotes } = useDocument(user, 'vacation_notes', Array(12).fill(''));
   const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } });
   const { data: expenseCategories } = useDocument(user, 'expense_categories', DEFAULT_CATEGORIES);
-  const { data: incomeCategories } = useDocument(user, 'income_categories', DEFAULT_INCOME_CATEGORIES);
+
+  // --- DADOS LAZY (ativam só na aba correspondente) ---
+  const { data: vacationIncomes } = useLazyCollection(user, 'vacation_incomes', activeTab === 'vacation', INITIAL_VACATION_INCOMES);
+  const { data: vacationExpenses } = useLazyCollection(user, 'vacation_expenses', activeTab === 'vacation', INITIAL_VACATION_EXPENSES);
+  const { data: incomesNotes } = useLazyDocument(user, 'incomes_notes', activeTab === 'incomes', Array(12).fill(''));
+  const { data: expensesNotes } = useLazyDocument(user, 'expenses_notes', activeTab === 'monthly', Array(12).fill(''));
+  const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''));
+  const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''));
+  const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES);
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -149,18 +151,37 @@ const App = () => {
       const data = await importFromJSON(file);
       toast.success('Importação iniciada... Isso pode levar alguns segundos.');
 
-      // Importar dados (simplificado - em produção seria mais robusto)
+      const batchItems = [];
+
       if (data.incomes) {
         for (const item of data.incomes) {
-          await saveItem('incomes', item);
+          batchItems.push({ collectionName: 'incomes', item });
         }
       }
       if (data.expenses) {
         for (const item of data.expenses) {
-          await saveItem('expenses', item);
+          batchItems.push({ collectionName: 'expenses', item });
         }
       }
-      // ... outros dados
+      if (data.creditCardExpenses) {
+        for (const item of data.creditCardExpenses) {
+          batchItems.push({ collectionName: 'credit_expenses', item });
+        }
+      }
+      if (data.vacationIncomes) {
+        for (const item of data.vacationIncomes) {
+          batchItems.push({ collectionName: 'vacation_incomes', item });
+        }
+      }
+      if (data.vacationExpenses) {
+        for (const item of data.vacationExpenses) {
+          batchItems.push({ collectionName: 'vacation_expenses', item });
+        }
+      }
+
+      if (batchItems.length > 0) {
+        await batchSaveItems(batchItems);
+      }
 
       toast.success('Dados importados com sucesso!');
     } catch (error) {
@@ -247,6 +268,7 @@ const App = () => {
               onMonthChange={setSelectedMonth}
               incomes={incomes}
               onSave={saveItem}
+              onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               notes={incomesNotes}
               onSaveNotes={handleSaveIncomesNotes}
@@ -264,6 +286,7 @@ const App = () => {
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
               onSave={saveItem}
+              onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               onNavigate={setActiveTab}
               notes={expensesNotes}
@@ -280,6 +303,7 @@ const App = () => {
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
               onSave={saveItem}
+              onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               onSaveInvoiceTotal={handleSaveInvoiceTotal}
               notes={creditNotes}
@@ -302,6 +326,7 @@ const App = () => {
             <VacationFundView
               vacationFund={vacationFund}
               onSave={saveItem}
+              onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               notes={vacationNotes}
               onSaveNotes={handleSaveVacationNotes}

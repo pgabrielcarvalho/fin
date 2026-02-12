@@ -17,6 +17,7 @@ const IncomeView = ({
   onMonthChange,
   incomes,
   onSave,
+  onBatchSave,
   onDelete,
   notes,
   onSaveNotes,
@@ -114,8 +115,10 @@ const IncomeView = ({
 
     const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
     try {
-      await onSave('incomes', renumbered.find(e => e.id === income.id));
-      await onSave('incomes', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'incomes', item: renumbered.find(e => e.id === income.id) },
+        { collectionName: 'incomes', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
       toast.success('Ordem atualizada!');
     } catch { toast.error('Erro ao reordenar'); }
   };
@@ -132,8 +135,10 @@ const IncomeView = ({
 
     const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
     try {
-      await onSave('incomes', renumbered.find(e => e.id === income.id));
-      await onSave('incomes', renumbered.find(e => e.id === neighbor.id));
+      await onBatchSave([
+        { collectionName: 'incomes', item: renumbered.find(e => e.id === income.id) },
+        { collectionName: 'incomes', item: renumbered.find(e => e.id === neighbor.id) }
+      ]);
       toast.success('Ordem atualizada!');
     } catch { toast.error('Erro ao reordenar'); }
   };
@@ -154,8 +159,10 @@ const IncomeView = ({
     reordered.splice(newIndex, 0, moved);
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('incomes', renumbered[oldIndex]);
-      await onSave('incomes', renumbered[newIndex]);
+      await onBatchSave([
+        { collectionName: 'incomes', item: renumbered[oldIndex] },
+        { collectionName: 'incomes', item: renumbered[newIndex] }
+      ]);
     } catch { /* silent */ }
   };
 
@@ -165,8 +172,10 @@ const IncomeView = ({
     reordered.splice(newIndex, 0, moved);
     const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
     try {
-      await onSave('incomes', renumbered[oldIndex]);
-      await onSave('incomes', renumbered[newIndex]);
+      await onBatchSave([
+        { collectionName: 'incomes', item: renumbered[oldIndex] },
+        { collectionName: 'incomes', item: renumbered[newIndex] }
+      ]);
     } catch { /* silent */ }
   };
 
@@ -201,19 +210,16 @@ const IncomeView = ({
   };
 
   const handleCopyFromMonth = async (sourceMonth) => {
-    let copiedCount = 0;
+    const batchItems = [];
 
     // 1. Copiar overrides de receitas fixas
     for (const income of fixedIncomes) {
-      // Pegar o valor efetivo do mês de origem (override ou valor base)
       const sourceValue = income.overrides?.[sourceMonth] !== undefined
         ? income.overrides[sourceMonth]
         : income.value;
 
-      // Criar override para o mês de destino com o valor efetivo do mês de origem
       const newOverrides = { ...income.overrides, [selectedMonth]: sourceValue };
-      await onSave('incomes', { ...income, overrides: newOverrides });
-      copiedCount++;
+      batchItems.push({ collectionName: 'incomes', item: { ...income, overrides: newOverrides } });
     }
 
     // 2. Copiar receitas variáveis do mês de origem
@@ -221,23 +227,30 @@ const IncomeView = ({
       i => i.type === 'variable' && i.month === sourceMonth
     );
 
-    for (const income of sourceVariableIncomes) {
-      const maxOrder = incomes.reduce((max, inc) =>
-        Math.max(max, inc.order !== undefined ? inc.order : 0), 0
-      );
+    let maxOrder = incomes.reduce((max, inc) =>
+      Math.max(max, inc.order !== undefined ? inc.order : 0), 0
+    );
 
-      await onSave('incomes', {
-        name: income.name,
-        value: income.value,
-        type: 'variable',
-        month: selectedMonth,
-        overrides: {},
-        order: maxOrder + 1
+    for (const income of sourceVariableIncomes) {
+      maxOrder++;
+      batchItems.push({
+        collectionName: 'incomes',
+        item: {
+          name: income.name,
+          value: income.value,
+          type: 'variable',
+          month: selectedMonth,
+          overrides: {},
+          order: maxOrder
+        }
       });
-      copiedCount++;
     }
 
-    toast.success(`${copiedCount} ${copiedCount === 1 ? 'receita copiada' : 'receitas copiadas'} de ${MONTHS[sourceMonth]}`);
+    if (batchItems.length > 0) {
+      await onBatchSave(batchItems);
+    }
+
+    toast.success(`${batchItems.length} ${batchItems.length === 1 ? 'receita copiada' : 'receitas copiadas'} de ${MONTHS[sourceMonth]}`);
   };
 
   return (
