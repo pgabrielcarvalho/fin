@@ -35,6 +35,9 @@ const validateConfig = (config) => {
 
 validateConfig(firebaseConfig);
 
+// Debug: mostrar appId e projectId no console para diagnóstico
+console.log('[Firebase] appId:', appId, '| projectId:', firebaseConfig.projectId);
+
 // Inicialização
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
