@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
+import { arrayMove } from '@dnd-kit/sortable';
+import { SortableList, SortableItem, DragHandle } from './SortableList';
 
 const CategoryManager = ({ categories = [], onSave, onClose }) => {
   const [localCategories, setLocalCategories] = useState([...categories]);
@@ -39,6 +41,12 @@ const CategoryManager = ({ categories = [], onSave, onClose }) => {
     onSave(updated);
   };
 
+  const handleReorder = (oldIndex, newIndex) => {
+    const reordered = arrayMove(localCategories, oldIndex, newIndex).map((c, i) => ({ ...c, order: i + 1 }));
+    setLocalCategories(reordered);
+    onSave(reordered);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
@@ -53,28 +61,35 @@ const CategoryManager = ({ categories = [], onSave, onClose }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {localCategories.map(cat => (
-            <div key={cat.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-              <input
-                type="color"
-                value={cat.color}
-                onChange={e => handleUpdateColor(cat.id, e.target.value)}
-                className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
-              />
-              <input
-                type="text"
-                value={cat.name}
-                onChange={e => handleUpdateName(cat.id, e.target.value)}
-                className="flex-1 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 outline-none border-b border-transparent focus:border-slate-300 dark:focus:border-slate-500 px-1 py-0.5"
-              />
-              <button
-                onClick={() => handleDelete(cat.id)}
-                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-              >
-                <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
-              </button>
-            </div>
-          ))}
+          <SortableList items={localCategories} onReorder={handleReorder}>
+            {localCategories.map(cat => (
+              <SortableItem key={cat.id} id={cat.id}>
+                {({ dragHandleProps }) => (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                    <DragHandle {...dragHandleProps} />
+                    <input
+                      type="color"
+                      value={cat.color}
+                      onChange={e => handleUpdateColor(cat.id, e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={cat.name}
+                      onChange={e => handleUpdateName(cat.id, e.target.value)}
+                      className="flex-1 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-200 outline-none border-b border-transparent focus:border-slate-300 dark:focus:border-slate-500 px-1 py-0.5"
+                    />
+                    <button
+                      onClick={() => handleDelete(cat.id)}
+                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                    >
+                      <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
+                    </button>
+                  </div>
+                )}
+              </SortableItem>
+            ))}
+          </SortableList>
         </div>
 
         <div className="p-4 border-t dark:border-slate-700">
