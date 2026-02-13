@@ -240,24 +240,26 @@ export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoic
         Despesas por Categoria
       </h3>
       <div className="flex flex-col md:flex-row items-center gap-4">
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              dataKey="value"
-              paddingAngle={2}
-            >
-              {data.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="w-full md:flex-1" style={{ minWidth: 0, minHeight: 250 }}>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                dataKey="value"
+                paddingAngle={2}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
         <div className="flex flex-col gap-1.5 min-w-[140px]">
           {data.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2 text-xs">
