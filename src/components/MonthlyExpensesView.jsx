@@ -11,6 +11,7 @@ import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateExpense, getMonthlyCardTotal, getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyBalance } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
+import { useDragReorder } from '../hooks/useDragReorder';
 
 const MonthlyExpensesView = ({
   selectedMonth,
@@ -73,6 +74,8 @@ const MonthlyExpensesView = ({
     });
   }, [sortedExpenses, selectedMonth]);
 
+  const { handleDragReorder } = useDragReorder('expenses', activeExpenses, onBatchSave, sortedExpenses);
+
   const handleAdd = async () => {
     const validation = validateExpense({
       ...newExpense,
@@ -114,64 +117,6 @@ const MonthlyExpensesView = ({
     } else {
       toast.error(`Erro: ${result.error}`);
     }
-  };
-
-  const handleMove = async (expense, direction, visibleIndex) => {
-    const newVisibleIndex = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newVisibleIndex < 0 || newVisibleIndex >= activeExpenses.length) return;
-
-    const neighbor = activeExpenses[newVisibleIndex];
-
-    // Encontrar posições globais em sortedExpenses
-    const globalIdx = sortedExpenses.findIndex(e => e.id === expense.id);
-    const globalNeighborIdx = sortedExpenses.findIndex(e => e.id === neighbor.id);
-
-    // Fazer splice na lista global completa
-    const reordered = [...sortedExpenses];
-    const [moved] = reordered.splice(globalIdx, 1);
-    // Inserir na posição do vizinho (ajustar se necessário)
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    // Renumerar tudo sequencialmente
-    const renumbered = reordered.map((item, idx) => ({
-      ...item,
-      order: idx + 1
-    }));
-
-    // Encontrar os itens atualizados para salvar
-    const updatedExpense = renumbered.find(e => e.id === expense.id);
-    const updatedNeighbor = renumbered.find(e => e.id === neighbor.id);
-
-    try {
-      await onBatchSave([
-        { collectionName: 'expenses', item: updatedExpense },
-        { collectionName: 'expenses', item: updatedNeighbor }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch (error) {
-      toast.error('Erro ao reordenar');
-    }
-  };
-
-  const handleDragReorder = async (oldIndex, newIndex) => {
-    const item = activeExpenses[oldIndex];
-    const neighbor = activeExpenses[newIndex];
-
-    const globalIdx = sortedExpenses.findIndex(e => e.id === item.id);
-    const reordered = [...sortedExpenses];
-    const [moved] = reordered.splice(globalIdx, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(oldIndex < newIndex ? insertAt + 1 : insertAt, 0, moved);
-
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-
-    try {
-      await onBatchSave([
-        { collectionName: 'expenses', item: renumbered.find(e => e.id === item.id) },
-        { collectionName: 'expenses', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-    } catch { /* silent */ }
   };
 
   const togglePaid = async (expense) => {

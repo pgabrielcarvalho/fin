@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
@@ -7,11 +7,11 @@ import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import EditableValue from './EditableValue';
-import { CategoryBreakdownChart } from './Charts';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, isCardExpenseActive } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
+import { useDragReorder } from '../hooks/useDragReorder';
 
 const CreditCardView = ({
   selectedMonth,
@@ -38,6 +38,7 @@ const CreditCardView = ({
     categoryId: ''
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [groupByCategory, setGroupByCategory] = useState(false);
 
   // Usar hook de reordenação para todos os itens cadastrados
   const { sortedItems: sortedCreditExpenses } = useReorder(
@@ -49,6 +50,8 @@ const CreditCardView = ({
     () => getActiveCardExpenses(sortedCreditExpenses, selectedMonth),
     [sortedCreditExpenses, selectedMonth]
   );
+
+  const { handleDragReorder } = useDragReorder('credit_expenses', activeItems, onBatchSave, sortedCreditExpenses);
 
   const plannedCardTotal = useMemo(
     () => activeItems.reduce((acc, item) => {
@@ -90,6 +93,50 @@ const CreditCardView = ({
   const manualInvoiceTotal = invoiceTotals?.[selectedMonth] || 0;
   const finalCardTotal = manualInvoiceTotal > 0 ? manualInvoiceTotal : plannedCardTotal;
   const miscellaneousExpenses = getMiscellaneousCardExpenses(plannedCardTotal, manualInvoiceTotal);
+
+  // Agrupar despesas por categoria
+  const groupedItems = useMemo(() => {
+    if (!groupByCategory) return null;
+
+    const groups = {};
+    const uncategorized = [];
+
+    activeItems.forEach(item => {
+      const value = item.overrides?.[selectedMonth] !== undefined
+        ? item.overrides[selectedMonth]
+        : item.value;
+      if (item.categoryId) {
+        if (!groups[item.categoryId]) {
+          const cat = categories.find(c => c.id === item.categoryId);
+          groups[item.categoryId] = {
+            category: cat || { id: item.categoryId, name: 'Desconhecida', color: '#94a3b8' },
+            items: [],
+            total: 0
+          };
+        }
+        groups[item.categoryId].items.push(item);
+        groups[item.categoryId].total += value;
+      } else {
+        uncategorized.push(item);
+      }
+    });
+
+    const sorted = Object.values(groups).sort((a, b) => (a.category.order || 99) - (b.category.order || 99));
+
+    if (uncategorized.length > 0) {
+      const uncatTotal = uncategorized.reduce((sum, item) => {
+        const val = item.overrides?.[selectedMonth] !== undefined ? item.overrides[selectedMonth] : item.value;
+        return sum + val;
+      }, 0);
+      sorted.push({
+        category: { id: '_uncategorized', name: 'Sem Categoria', color: '#94a3b8' },
+        items: uncategorized,
+        total: uncatTotal
+      });
+    }
+
+    return sorted;
+  }, [activeItems, groupByCategory, categories, selectedMonth]);
 
   const handleAdd = async () => {
     const currentYear = new Date().getFullYear();
@@ -157,50 +204,6 @@ const CreditCardView = ({
     delete newOverrides[selectedMonth];
     await onSave('credit_expenses', { ...expense, overrides: newOverrides });
     toast.info('Valor restaurado');
-  };
-
-  const handleMove = async (item, direction, visibleIndex) => {
-    // Use activeItems (visible list) for index, but splice in global sortedCreditExpenses
-    const visibleList = activeItems;
-    const newVisibleIndex = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newVisibleIndex < 0 || newVisibleIndex >= visibleList.length) return;
-
-    const neighbor = visibleList[newVisibleIndex];
-    const globalIdx = sortedCreditExpenses.findIndex(e => e.id === item.id);
-
-    const reordered = [...sortedCreditExpenses];
-    const [moved] = reordered.splice(globalIdx, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-
-    try {
-      await onBatchSave([
-        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === item.id) },
-        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch { toast.error('Erro ao reordenar'); }
-  };
-
-  const handleDragReorder = async (oldIndex, newIndex) => {
-    const item = activeItems[oldIndex];
-    const neighbor = activeItems[newIndex];
-    const globalIdx = sortedCreditExpenses.findIndex(e => e.id === item.id);
-
-    const reordered = [...sortedCreditExpenses];
-    const [moved] = reordered.splice(globalIdx, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(oldIndex < newIndex ? insertAt + 1 : insertAt, 0, moved);
-
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === item.id) },
-        { collectionName: 'credit_expenses', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-    } catch { /* silent */ }
   };
 
   const handleInvoiceChange = (value) => {
@@ -487,7 +490,7 @@ const CreditCardView = ({
                 onChange={e => setNewCardExpense({ ...newCardExpense, lastMonth: parseInt(e.target.value) })}
               >
                 {MONTHS.map((m, i) => (
-                  <option key={i} value={i}>{m}/26</option>
+                  <option key={i} value={i}>{m}/{String(new Date().getFullYear()).slice(-2)}</option>
                 ))}
               </select>
             </div>
@@ -504,7 +507,7 @@ const CreditCardView = ({
               onChange={e => setNewCardExpense({ ...newCardExpense, month: parseInt(e.target.value) })}
             >
               {MONTHS.map((m, i) => (
-                <option key={i} value={i}>{m}/26</option>
+                <option key={i} value={i}>{m}/{String(new Date().getFullYear()).slice(-2)}</option>
               ))}
             </select>
           </div>
@@ -527,6 +530,18 @@ const CreditCardView = ({
               {activeItems.length} ativas de {sortedCreditExpenses.length} {sortedCreditExpenses.length === 1 ? 'item' : 'itens'}
             </span>
             <button
+              onClick={() => setGroupByCategory(!groupByCategory)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                groupByCategory
+                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400'
+                  : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
+              }`}
+              title="Agrupar por categoria"
+            >
+              <Layers size={14} />
+              <span className="hidden sm:inline">Agrupar</span>
+            </button>
+            <button
               onClick={() => setShowCategoryManager(true)}
               className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
               title="Gerenciar categorias"
@@ -536,11 +551,110 @@ const CreditCardView = ({
             </button>
           </div>
         </div>
-        <div className="divide-y">
+        <div className="divide-y dark:divide-slate-700">
           {sortedCreditExpenses.length === 0 ? (
             <div className="p-8 text-center text-slate-400">
               Nenhuma despesa cadastrada
             </div>
+          ) : groupByCategory && groupedItems ? (
+            groupedItems.map(group => (
+              <div key={group.category.id}>
+                <div
+                  className="px-3 md:px-4 py-2 flex justify-between items-center"
+                  style={{ backgroundColor: group.category.color + '15', borderLeft: `3px solid ${group.category.color}` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: group.category.color }}
+                    />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      {group.category.name}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      ({group.items.length})
+                    </span>
+                  </div>
+                  <span className="text-sm font-mono font-bold text-slate-600 dark:text-slate-400">
+                    {formatCurrency(group.total)}
+                  </span>
+                </div>
+                <div className="divide-y dark:divide-slate-700">
+                  {group.items.map((item) => {
+                    const isFixed = !item.type || item.type === 'fixed';
+                    const isOverridden = isFixed && item.overrides && item.overrides[selectedMonth] !== undefined;
+                    const currentValue = isOverridden ? item.overrides[selectedMonth] : item.value;
+
+                    return (
+                      <div key={item.id} className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                              <CategoryPicker
+                                categoryId={item.categoryId}
+                                categories={categories}
+                                onChange={(catId) => handleCategoryChange(item, catId)}
+                              />
+                            </div>
+                            <div className="text-xs mt-1 flex flex-wrap gap-1">
+                              {isFixed && (
+                                <>
+                                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Fixa</span>
+                                  <span className="ml-2 text-slate-400 dark:text-slate-500">Base: {formatCurrency(item.value)}</span>
+                                </>
+                              )}
+                              {item.type === 'installment' && (
+                                <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded font-medium">
+                                  {item.installments}x (última: {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)})
+                                </span>
+                              )}
+                              {item.type === 'eventual' && (
+                                <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
+                                  Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {isFixed ? (
+                            <div className="flex items-center gap-2">
+                              <div className={`flex items-center gap-2 p-1 rounded border ${
+                                isOverridden ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'border-transparent'
+                              }`}>
+                                <span className="text-xs text-slate-400 dark:text-slate-500">{MONTHS[selectedMonth]}:</span>
+                                <EditableValue
+                                  value={currentValue}
+                                  onSave={(val) => updateOverride(item, val)}
+                                  className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                                    isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
+                                  }`}
+                                />
+                              </div>
+                              {isOverridden && (
+                                <button onClick={() => resetOverride(item)} title="Restaurar valor original">
+                                  <RotateCcw size={16} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-right">
+                              <div className="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-lg">
+                                {formatCurrency(item.value)}
+                              </div>
+                            </div>
+                          )}
+
+                          <button onClick={() => handleDelete(item.id)}>
+                            <Trash2 size={18} className="text-slate-300 hover:text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           ) : (
             <SortableList items={activeItems} onReorder={handleDragReorder}>
               {activeItems.map((item) => {
@@ -549,11 +663,15 @@ const CreditCardView = ({
                 const currentValue = isOverridden
                   ? item.overrides[selectedMonth]
                   : item.value;
+                const category = categories.find(c => c.id === item.categoryId);
 
                 return (
                   <SortableItem key={item.id} id={item.id}>
                     {({ dragHandleProps }) => (
-                      <div className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
+                      <div
+                        className="p-4 flex justify-between items-center bg-white dark:bg-slate-800"
+                        style={category ? { borderLeft: `3px solid ${category.color}` } : undefined}
+                      >
                         <div className="flex items-center gap-3 flex-1">
                           <DragHandle {...dragHandleProps} />
 
@@ -569,22 +687,22 @@ const CreditCardView = ({
                             <div className="text-xs mt-1 flex flex-wrap gap-1">
                               {isFixed && (
                                 <>
-                                  <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium">
+                                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">
                                     Fixa
                                   </span>
-                                  <span className="ml-2 text-slate-400">
+                                  <span className="ml-2 text-slate-400 dark:text-slate-500">
                                     Base: {formatCurrency(item.value)}
                                   </span>
                                 </>
                               )}
                               {item.type === 'installment' && (
-                                <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
-                                  {item.installments}x (última: {MONTHS[item.lastMonth]}/26)
+                                <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded font-medium">
+                                  {item.installments}x (última: {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)})
                                 </span>
                               )}
                               {item.type === 'eventual' && (
-                                <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
-                                  Eventual ({MONTHS[item.month]}/26)
+                                <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
+                                  Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
                                 </span>
                               )}
                             </div>
@@ -595,30 +713,30 @@ const CreditCardView = ({
                               <div
                                 className={`flex items-center gap-2 p-1 rounded border ${
                                   isOverridden
-                                    ? 'bg-yellow-50 border-yellow-300'
+                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
                                     : 'border-transparent'
                                 }`}
                               >
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-slate-400 dark:text-slate-500">
                                   {MONTHS[selectedMonth]}:
                                 </span>
                                 <EditableValue
                                   value={currentValue}
                                   onSave={(val) => updateOverride(item, val)}
                                   className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
-                                    isOverridden ? 'text-yellow-700' : 'text-indigo-700'
+                                    isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
                                   }`}
                                 />
                               </div>
                               {isOverridden && (
                                 <button onClick={() => resetOverride(item)} title="Restaurar valor original">
-                                  <RotateCcw size={16} className="text-slate-400 hover:text-indigo-600" />
+                                  <RotateCcw size={16} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
                                 </button>
                               )}
                             </div>
                           ) : (
                             <div className="text-right">
-                              <div className="font-mono font-bold text-indigo-700 text-lg">
+                              <div className="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-lg">
                                 {formatCurrency(item.value)}
                               </div>
                             </div>
@@ -637,13 +755,6 @@ const CreditCardView = ({
           )}
         </div>
       </div>
-
-      {/* Gráfico de Categorias */}
-      <CategoryBreakdownChart
-        creditCardExpenses={creditCardExpenses}
-        selectedMonth={selectedMonth}
-        categories={categories}
-      />
 
       {/* Anotações do Mês */}
       <MonthlyNotes

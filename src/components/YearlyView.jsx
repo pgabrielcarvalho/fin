@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { formatCurrency } from '../utils/formatters';
 import { getYearlyData } from '../services/calculations';
-import { MonthlyComparisonChart, BalanceTrendChart } from './Charts';
 
 const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
   const yearData = useMemo(
@@ -19,23 +18,7 @@ const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) =>
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual 2026</h2>
-
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MonthlyComparisonChart
-          incomes={incomes}
-          expenses={expenses}
-          creditCardExpenses={creditCardExpenses}
-          invoiceTotals={invoiceTotals}
-        />
-        <BalanceTrendChart
-          incomes={incomes}
-          expenses={expenses}
-          creditCardExpenses={creditCardExpenses}
-          invoiceTotals={invoiceTotals}
-        />
-      </div>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual {new Date().getFullYear()}</h2>
 
       {/* Tabela */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto">

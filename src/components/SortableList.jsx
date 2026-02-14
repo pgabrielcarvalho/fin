@@ -19,6 +19,7 @@ import { GripVertical } from 'lucide-react';
 export const DragHandle = ({ listeners, attributes }) => (
   <button
     className="p-1 cursor-grab active:cursor-grabbing text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 touch-none"
+    aria-label="Arrastar para reordenar"
     {...listeners}
     {...attributes}
   >

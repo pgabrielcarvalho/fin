@@ -57,6 +57,7 @@ export const APP_SHORTCUTS = {
   CREDIT_CARD: ['c'],
   YEARLY: ['a'],
   VACATION: ['f'],
+  OFFICE: ['o'],
   EXPORT: ['ctrl+e', 'cmd+e'],
   DARK_MODE: ['ctrl+d', 'cmd+d'],
   HELP: ['?', 'h'],

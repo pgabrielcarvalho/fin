@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   onAuthStateChanged,
   signInWithCustomToken,
@@ -15,6 +15,7 @@ export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const loadingRef = useRef(true);
 
   useEffect(() => {
     // Tenta autenticação automática (ambiente Canvas/Teste)
@@ -38,20 +39,23 @@ export const useAuth = () => {
       (currentUser) => {
         setUser(currentUser);
         setLoading(false);
+        loadingRef.current = false;
         setError(null);
       },
       (err) => {
         console.error("Erro no observer de autenticação:", err);
         setError(err);
         setLoading(false);
+        loadingRef.current = false;
       }
     );
 
     // Timeout de segurança
     const timer = setTimeout(() => {
-      if (loading) {
+      if (loadingRef.current) {
         console.warn("Timeout de autenticação. Liberando interface.");
         setLoading(false);
+        loadingRef.current = false;
       }
     }, 5000);
 

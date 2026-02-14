@@ -3,7 +3,8 @@ import {
   getMonthlyIncome,
   getMonthlyFixedExpenses,
   getMonthlyCardTotal,
-  getMonthlyBalance
+  getMonthlyBalance,
+  isCardExpenseActive
 } from './calculations';
 
 /**
@@ -67,7 +68,7 @@ export const exportToCSV = (data, selectedMonth = null) => {
     csv += 'CARTÃO DE CRÉDITO\n';
     csv += 'Nome,Valor,Categoria,Status\n';
     creditCardExpenses.forEach(expense => {
-      if (expense.monthsActive?.[selectedMonth]) {
+      if (isCardExpenseActive(expense, selectedMonth)) {
         const value = expense.overrides?.[selectedMonth] ?? expense.value;
         const category = expense.category || 'Geral';
         const status = expense.paidStatus?.[selectedMonth] ? 'Pago' : 'Pendente';
@@ -258,7 +259,7 @@ export const exportToPDF = (data, selectedMonth) => {
         </thead>
         <tbody>
           ${creditCardExpenses
-            .filter(expense => expense.monthsActive?.[selectedMonth])
+            .filter(expense => isCardExpenseActive(expense, selectedMonth))
             .map(expense => {
               const value = expense.overrides?.[selectedMonth] ?? expense.value;
               const isPaid = expense.paidStatus?.[selectedMonth];

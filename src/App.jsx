@@ -19,6 +19,7 @@ import YearlyView from './components/YearlyView';
 import VacationFundView from './components/VacationFundView';
 import ExportMenu from './components/ExportMenu';
 import MonthComparison from './components/MonthComparison';
+import OfficeView from './components/OfficeView';
 
 // Services
 import { exportToJSON, exportToCSV, exportToPDF, importFromJSON } from './services/exportService';
@@ -30,6 +31,7 @@ import {
   INITIAL_CREDIT_EXPENSES,
   INITIAL_VACATION_INCOMES,
   INITIAL_VACATION_EXPENSES,
+  INITIAL_OBLIGATIONS,
   DEFAULT_CATEGORIES,
   DEFAULT_INCOME_CATEGORIES
 } from './services/seedData';
@@ -64,6 +66,8 @@ const App = () => {
   const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''));
   const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''));
   const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES);
+  const { data: obligations } = useLazyCollection(user, 'obligations', activeTab === 'office', INITIAL_OBLIGATIONS);
+  const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''));
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -102,6 +106,10 @@ const App = () => {
     await saveDocument('vacation_notes', newNotes);
   };
 
+  const handleSaveObligationsNotes = async (newNotes) => {
+    await saveDocument('obligations_notes', newNotes);
+  };
+
   const handleSaveGoals = async (newGoals) => {
     await saveDocument('goals', newGoals);
   };
@@ -126,7 +134,11 @@ const App = () => {
       expensesNotes,
       creditNotes,
       vacationNotes,
-      goals
+      goals,
+      obligations,
+      obligationsNotes,
+      expenseCategories,
+      incomeCategories
     };
 
     try {
@@ -178,10 +190,26 @@ const App = () => {
           batchItems.push({ collectionName: 'vacation_expenses', item });
         }
       }
+      if (data.obligations) {
+        for (const item of data.obligations) {
+          batchItems.push({ collectionName: 'obligations', item });
+        }
+      }
 
       if (batchItems.length > 0) {
         await batchSaveItems(batchItems);
       }
+
+      // Importar documentos singleton
+      if (data.invoiceTotals) await saveDocument('invoice_totals', data.invoiceTotals);
+      if (data.goals) await saveDocument('goals', data.goals);
+      if (data.expenseCategories) await saveDocument('expense_categories', data.expenseCategories);
+      if (data.incomeCategories) await saveDocument('income_categories', data.incomeCategories);
+      if (data.incomesNotes) await saveDocument('incomes_notes', data.incomesNotes);
+      if (data.expensesNotes) await saveDocument('expenses_notes', data.expensesNotes);
+      if (data.creditNotes) await saveDocument('credit_notes', data.creditNotes);
+      if (data.vacationNotes) await saveDocument('vacation_notes', data.vacationNotes);
+      if (data.obligationsNotes) await saveDocument('obligations_notes', data.obligationsNotes);
 
       toast.success('Dados importados com sucesso!');
     } catch (error) {
@@ -197,6 +225,7 @@ const App = () => {
     { keys: APP_SHORTCUTS.CREDIT_CARD, action: () => setActiveTab('credit') },
     { keys: APP_SHORTCUTS.YEARLY, action: () => setActiveTab('yearly') },
     { keys: APP_SHORTCUTS.VACATION, action: () => setActiveTab('vacation') },
+    { keys: APP_SHORTCUTS.OFFICE, action: () => setActiveTab('office') },
     { keys: APP_SHORTCUTS.EXPORT, action: () => setShowExportMenu(true) },
     { keys: APP_SHORTCUTS.DARK_MODE, action: toggleDarkMode },
     { keys: APP_SHORTCUTS.NEXT_MONTH, action: () => setSelectedMonth(m => (m + 1) % 12) },
@@ -330,6 +359,19 @@ const App = () => {
               onDelete={deleteItem}
               notes={vacationNotes}
               onSaveNotes={handleSaveVacationNotes}
+            />
+          )}
+
+          {activeTab === 'office' && (
+            <OfficeView
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              obligations={obligations}
+              onSave={saveItem}
+              onBatchSave={batchSaveItems}
+              onDelete={deleteItem}
+              notes={obligationsNotes}
+              onSaveNotes={handleSaveObligationsNotes}
             />
           )}
 

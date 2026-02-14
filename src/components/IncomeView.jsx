@@ -11,6 +11,7 @@ import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateIncome, getMonthlyIncome } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
+import { useDragReorder } from '../hooks/useDragReorder';
 
 const IncomeView = ({
   selectedMonth,
@@ -49,6 +50,9 @@ const IncomeView = ({
   const {
     sortedItems: sortedVariableIncomes
   } = useReorder(variableIncomes, (updatedItem) => onSave('incomes', updatedItem));
+
+  const { handleDragReorder: handleDragReorderFixed } = useDragReorder('incomes', sortedFixedIncomes, onBatchSave);
+  const { handleDragReorder: handleDragReorderVariable } = useDragReorder('incomes', sortedVariableIncomes, onBatchSave);
 
   // Calcular totais para os cards de resumo
   const totals = useMemo(() => {
@@ -103,46 +107,6 @@ const IncomeView = ({
     }
   };
 
-  const handleMoveFixed = async (income, direction, visibleIndex) => {
-    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newIdx < 0 || newIdx >= sortedFixedIncomes.length) return;
-
-    const neighbor = sortedFixedIncomes[newIdx];
-    const reordered = [...sortedFixedIncomes];
-    const [moved] = reordered.splice(visibleIndex, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'incomes', item: renumbered.find(e => e.id === income.id) },
-        { collectionName: 'incomes', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch { toast.error('Erro ao reordenar'); }
-  };
-
-  const handleMoveVariable = async (income, direction, visibleIndex) => {
-    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newIdx < 0 || newIdx >= sortedVariableIncomes.length) return;
-
-    const neighbor = sortedVariableIncomes[newIdx];
-    const reordered = [...sortedVariableIncomes];
-    const [moved] = reordered.splice(visibleIndex, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    const renumbered = reordered.map((item, idx) => ({ ...item, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'incomes', item: renumbered.find(e => e.id === income.id) },
-        { collectionName: 'incomes', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch { toast.error('Erro ao reordenar'); }
-  };
-
   const handleCategoryChange = async (income, categoryId) => {
     const updated = { ...income };
     if (categoryId) {
@@ -151,32 +115,6 @@ const IncomeView = ({
       delete updated.categoryId;
     }
     await onSave('incomes', updated);
-  };
-
-  const handleDragReorderFixed = async (oldIndex, newIndex) => {
-    const reordered = [...sortedFixedIncomes];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'incomes', item: renumbered[oldIndex] },
-        { collectionName: 'incomes', item: renumbered[newIndex] }
-      ]);
-    } catch { /* silent */ }
-  };
-
-  const handleDragReorderVariable = async (oldIndex, newIndex) => {
-    const reordered = [...sortedVariableIncomes];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'incomes', item: renumbered[oldIndex] },
-        { collectionName: 'incomes', item: renumbered[newIndex] }
-      ]);
-    } catch { /* silent */ }
   };
 
   const updateOverride = async (income, newValue) => {

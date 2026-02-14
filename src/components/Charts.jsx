@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -19,7 +19,8 @@ import {
   getMonthlyIncome,
   getMonthlyFixedExpenses,
   getMonthlyCardTotal,
-  getMonthlyBalance
+  getMonthlyBalance,
+  isCardExpenseActive
 } from '../services/calculations';
 
 const COLORS = {
@@ -47,7 +48,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
-  const data = MONTHS.map((month, index) => ({
+  const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index),
     despesas: getMonthlyFixedExpenses(expenses, index) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index),
@@ -56,7 +57,7 @@ export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, 
       getMonthlyFixedExpenses(expenses, index),
       getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
     )
-  }));
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -80,7 +81,7 @@ export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, 
 };
 
 export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
-  const data = MONTHS.map((month, index) => ({
+  const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index),
     despesas: getMonthlyFixedExpenses(expenses, index) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index),
@@ -89,7 +90,7 @@ export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoi
       getMonthlyFixedExpenses(expenses, index),
       getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
     )
-  }));
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -133,45 +134,6 @@ export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoi
   );
 };
 
-export const ExpenseBreakdownPie = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth }) => {
-  const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth);
-  const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
-
-  const data = [
-    { name: 'Despesas Fixas', value: fixedExpenses },
-    { name: 'Cartão de Crédito', value: cardExpenses }
-  ];
-
-  const CHART_COLORS = [COLORS.fixed, COLORS.card];
-
-  return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
-        Distribuição de Despesas
-      </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            outerRadius={100}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
-
 const DONUT_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#64748b',
@@ -198,8 +160,9 @@ export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoic
     categoryTotals[catName].value += value;
   });
 
-  // Despesas do cartão
+  // Despesas do cartão (apenas ativas no mês selecionado)
   creditCardExpenses.forEach(expense => {
+    if (!isCardExpenseActive(expense, selectedMonth)) return;
     const value = expense.overrides?.[selectedMonth] !== undefined ? expense.overrides[selectedMonth] : expense.value;
     let catName = 'Sem Categoria';
     let catColor = '#94a3b8';
@@ -276,54 +239,3 @@ export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoic
   );
 };
 
-export const CategoryBreakdownChart = ({ creditCardExpenses, selectedMonth, categories = [] }) => {
-  const categoryTotals = {};
-
-  creditCardExpenses.forEach(expense => {
-    // Resolver nome da categoria: categoryId (novo) ou category (legado)
-    let categoryName = 'Sem Categoria';
-    if (expense.categoryId) {
-      const cat = categories.find(c => c.id === expense.categoryId);
-      categoryName = cat ? cat.name : 'Desconhecida';
-    } else if (expense.category) {
-      categoryName = expense.category;
-    }
-
-    const value = expense.overrides?.[selectedMonth] ?? expense.value;
-    categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
-  });
-
-  const data = Object.entries(categoryTotals)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
-
-  if (data.length === 0) {
-    return (
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
-          Gastos por Categoria
-        </h3>
-        <p className="text-slate-500 dark:text-slate-400 text-center py-8">
-          Nenhuma despesa neste mês
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
-        Gastos por Categoria
-      </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} layout="vertical">
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis type="number" stroke="#64748b" />
-          <YAxis dataKey="name" type="category" width={100} stroke="#64748b" />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="value" name="Valor" fill={COLORS.card} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};

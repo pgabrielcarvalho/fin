@@ -42,39 +42,39 @@ const Dashboard = ({
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Dashboard</h2>
         <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card de Receita */}
         <div
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden group hover:border-emerald-200 transition-colors cursor-pointer"
+          className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors cursor-pointer"
           onClick={() => onNavigate('incomes')}
         >
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <TrendingUp size={100} />
           </div>
-          <div className="text-slate-500 text-sm mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-sm mb-1 font-medium">
             Receita
           </div>
-          <div className="text-3xl font-bold text-slate-800">
+          <div className="text-3xl font-bold text-slate-800 dark:text-slate-200">
             {formatCurrency(stats.income)}
           </div>
         </div>
 
         {/* Card de Despesas */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-red-500">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-red-500 dark:text-red-400">
             <TrendingDown size={100} />
           </div>
-          <div className="text-slate-500 text-sm mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-sm mb-1 font-medium">
             Total Despesas
           </div>
-          <div className="text-3xl font-bold text-red-600">
+          <div className="text-3xl font-bold text-red-600 dark:text-red-400">
             {formatCurrency(stats.totalExpenses)}
           </div>
-          <div className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             Fixo: {formatCurrency(stats.fixedExpenses)} | Cartão:{' '}
             {formatCurrency(stats.cardExpenses)}
           </div>

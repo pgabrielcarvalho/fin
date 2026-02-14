@@ -48,7 +48,7 @@ const CategoryManager = ({ categories = [], onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label="Gerenciar categorias">
       <div
         className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col"
         onClick={e => e.stopPropagation()}
@@ -82,6 +82,7 @@ const CategoryManager = ({ categories = [], onSave, onClose }) => {
                     <button
                       onClick={() => handleDelete(cat.id)}
                       className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                      aria-label={`Excluir categoria ${cat.name}`}
                     >
                       <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
                     </button>

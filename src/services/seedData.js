@@ -58,6 +58,13 @@ export const INITIAL_VACATION_EXPENSES = [
   { name: "Saída 2", value: 0 }
 ];
 
+export const INITIAL_OBLIGATIONS = [
+  { name: "Emitir Notas Fiscais", doneStatus: Array(12).fill(false), order: 1 },
+  { name: "Comunicar Contabilidade", doneStatus: Array(12).fill(false), order: 2 },
+  { name: "Pagar DAM Previdenciário", doneStatus: Array(12).fill(false), order: 3 },
+  { name: "Pagar Boleto Tributos", doneStatus: Array(12).fill(false), order: 4 },
+];
+
 export const getSeedDataForCollection = (collectionName) => {
   switch (collectionName) {
     case 'expenses':
@@ -70,6 +77,8 @@ export const getSeedDataForCollection = (collectionName) => {
       return INITIAL_VACATION_INCOMES;
     case 'vacation_expenses':
       return INITIAL_VACATION_EXPENSES;
+    case 'obligations':
+      return INITIAL_OBLIGATIONS;
     default:
       return [];
   }

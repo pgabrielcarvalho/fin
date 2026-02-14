@@ -35,14 +35,20 @@ const ExportMenu = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exportar e importar dados"
+    >
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h3 className="text-xl font-bold text-slate-800">Exportar/Importar Dados</h3>
+        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Exportar/Importar Dados</h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            aria-label="Fechar"
           >
             <X size={24} />
           </button>
@@ -52,7 +58,7 @@ const ExportMenu = ({
         <div className="p-6 space-y-6">
           {/* Tipo de Exportação */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Período
             </label>
             <div className="space-y-2">
@@ -65,7 +71,7 @@ const ExportMenu = ({
                   onChange={(e) => setExportType(e.target.value)}
                   className="text-emerald-600 focus:ring-emerald-500"
                 />
-                <span className="text-slate-700">Mês atual ({MONTHS[selectedMonth]})</span>
+                <span className="text-slate-700 dark:text-slate-300">Mês atual ({MONTHS[selectedMonth]})</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -76,36 +82,36 @@ const ExportMenu = ({
                   onChange={(e) => setExportType(e.target.value)}
                   className="text-emerald-600 focus:ring-emerald-500"
                 />
-                <span className="text-slate-700">Ano completo</span>
+                <span className="text-slate-700 dark:text-slate-300">Ano completo</span>
               </label>
             </div>
           </div>
 
           {/* Botões de Exportação */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Exportar como
             </label>
             <div className="space-y-2">
               <button
                 onClick={() => handleExport('json')}
-                className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                className="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
               >
                 <FileJson size={20} />
                 <div className="text-left">
                   <div className="font-semibold">Backup JSON</div>
-                  <div className="text-xs text-blue-600">Todos os dados para backup completo</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400">Todos os dados para backup completo</div>
                 </div>
               </button>
 
               <button
                 onClick={() => handleExport('csv')}
-                className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors"
+                className="w-full flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg transition-colors"
               >
                 <FileText size={20} />
                 <div className="text-left">
                   <div className="font-semibold">Relatório CSV</div>
-                  <div className="text-xs text-green-600">Planilha para Excel/Google Sheets</div>
+                  <div className="text-xs text-green-600 dark:text-green-400">Planilha para Excel/Google Sheets</div>
                 </div>
               </button>
 
@@ -114,8 +120,8 @@ const ExportMenu = ({
                 disabled={exportType === 'annual'}
                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
                   exportType === 'annual'
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    : 'bg-red-50 hover:bg-red-100 text-red-700'
+                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                    : 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300'
                 }`}
               >
                 <Printer size={20} />
@@ -128,18 +134,18 @@ const ExportMenu = ({
           </div>
 
           {/* Importação */}
-          <div className="border-t pt-4">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Importar dados
             </label>
             <button
               onClick={handleImportClick}
-              className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors"
             >
               <Upload size={20} />
               <div className="text-left">
                 <div className="font-semibold">Restaurar Backup</div>
-                <div className="text-xs text-purple-600">Importar arquivo JSON de backup</div>
+                <div className="text-xs text-purple-600 dark:text-purple-400">Importar arquivo JSON de backup</div>
               </div>
             </button>
           </div>

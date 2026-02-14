@@ -7,6 +7,7 @@ import {
   CreditCard,
   BarChart3,
   Plane,
+  Briefcase,
   LogOut,
   Menu,
   X,
@@ -27,6 +28,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
     { id: 'yearly', icon: BarChart3, label: 'Visão Anual' },
     { id: 'comparison', icon: PieChart, label: 'Comparação' },
     { id: 'vacation', icon: Plane, label: 'Fundo Férias' },
+    { id: 'office', icon: Briefcase, label: 'Escritório' },
   ];
 
   const handleTabChange = (tabId) => {
@@ -40,7 +42,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
       <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Wallet className="text-emerald-400 flex-shrink-0" size={20} />
-          <h1 className="text-base font-bold truncate">Finanças 2026</h1>
+          <h1 className="text-base font-bold truncate">Finanças {new Date().getFullYear()}</h1>
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -69,7 +71,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
       >
         <div className="mb-8 p-2 hidden md:block">
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Wallet className="text-emerald-400" /> Finanças 2026
+            <Wallet className="text-emerald-400" /> Finanças {new Date().getFullYear()}
           </h1>
           <div className="text-[10px] text-slate-500 mt-1 truncate">
             {user?.email}

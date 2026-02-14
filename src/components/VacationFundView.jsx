@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard } from 'lucide-react';
-import SimpleNotes from './SimpleNotes';
+import MonthlyNotes from './MonthlyNotes';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { getVacationTotals } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
+import { useDragReorder } from '../hooks/useDragReorder';
 
 const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, onSaveNotes }) => {
   const toast = useToast();
@@ -22,6 +23,9 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
   const {
     sortedItems: sortedExpenses
   } = useReorder(vacationFund.expenses, (updatedItem) => onSave('vacation_expenses', updatedItem));
+
+  const { handleDragReorder: handleDragReorderIncomes } = useDragReorder('vacation_incomes', sortedIncomes, onBatchSave);
+  const { handleDragReorder: handleDragReorderExpenses } = useDragReorder('vacation_expenses', sortedExpenses, onBatchSave);
 
   const totals = useMemo(
     () => getVacationTotals({ incomes: sortedIncomes, expenses: sortedExpenses }),
@@ -72,72 +76,6 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
       toast.success('Saída adicionada!');
       setNewVacationExpense({ name: '', value: '' });
     }
-  };
-
-  const handleMoveIncome = async (item, direction, visibleIndex) => {
-    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newIdx < 0 || newIdx >= sortedIncomes.length) return;
-
-    const neighbor = sortedIncomes[newIdx];
-    const reordered = [...sortedIncomes];
-    const [moved] = reordered.splice(visibleIndex, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'vacation_incomes', item: renumbered.find(e => e.id === item.id) },
-        { collectionName: 'vacation_incomes', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch { toast.error('Erro ao reordenar'); }
-  };
-
-  const handleMoveExpense = async (item, direction, visibleIndex) => {
-    const newIdx = direction === 'up' ? visibleIndex - 1 : visibleIndex + 1;
-    if (newIdx < 0 || newIdx >= sortedExpenses.length) return;
-
-    const neighbor = sortedExpenses[newIdx];
-    const reordered = [...sortedExpenses];
-    const [moved] = reordered.splice(visibleIndex, 1);
-    const insertAt = reordered.findIndex(e => e.id === neighbor.id);
-    reordered.splice(direction === 'up' ? insertAt : insertAt + 1, 0, moved);
-
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'vacation_expenses', item: renumbered.find(e => e.id === item.id) },
-        { collectionName: 'vacation_expenses', item: renumbered.find(e => e.id === neighbor.id) }
-      ]);
-      toast.success('Ordem atualizada!');
-    } catch { toast.error('Erro ao reordenar'); }
-  };
-
-  const handleDragReorderIncomes = async (oldIndex, newIndex) => {
-    const reordered = [...sortedIncomes];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'vacation_incomes', item: renumbered[oldIndex] },
-        { collectionName: 'vacation_incomes', item: renumbered[newIndex] }
-      ]);
-    } catch { /* silent */ }
-  };
-
-  const handleDragReorderExpenses = async (oldIndex, newIndex) => {
-    const reordered = [...sortedExpenses];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    const renumbered = reordered.map((e, idx) => ({ ...e, order: idx + 1 }));
-    try {
-      await onBatchSave([
-        { collectionName: 'vacation_expenses', item: renumbered[oldIndex] },
-        { collectionName: 'vacation_expenses', item: renumbered[newIndex] }
-      ]);
-    } catch { /* silent */ }
   };
 
   const handleDelete = async (collection, id) => {
@@ -306,7 +244,7 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
       </div>
 
       {/* Anotações */}
-      <SimpleNotes
+      <MonthlyNotes
         notes={notes}
         onSave={onSaveNotes}
         title="Anotações do Fundo de Férias"
