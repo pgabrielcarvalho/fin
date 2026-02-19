@@ -24,8 +24,9 @@ export const getMonthlyIncome = (incomes, monthIndex) => {
  * Calcula as despesas fixas de um mês específico
  * Inclui despesas fixas (todos os meses) e despesas eventuais (mês específico)
  */
-export const getMonthlyFixedExpenses = (expenses, monthIndex) => {
+export const getMonthlyFixedExpenses = (expenses, monthIndex, excludeExtraordinary = false) => {
   return expenses.reduce((acc, item) => {
+    if (excludeExtraordinary && item.extraordinary) return acc;
     // Retrocompatibilidade: se não tem tipo, considera como 'fixed'
     const itemType = item.type || 'fixed';
 
@@ -50,16 +51,17 @@ export const getMonthlyFixedExpenses = (expenses, monthIndex) => {
  * Calcula o total do cartão de crédito para um mês
  * Prioriza valor manual da fatura, senão calcula baseado nos parcelamentos
  */
-export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthIndex, currentYear = new Date().getFullYear()) => {
-  // Se há valor manual (fatura real), usa ele
+export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthIndex, currentYear = new Date().getFullYear(), excludeExtraordinary = false) => {
+  // Se há valor manual (fatura real) e NÃO estamos filtrando extraordinárias, usa ele
   const manualTotal = invoiceTotals?.[monthIndex] || 0;
-  if (manualTotal > 0) {
+  if (manualTotal > 0 && !excludeExtraordinary) {
     return manualTotal;
   }
 
   // Senão, calcula baseado nas despesas ativas (fixas + parceladas ativas)
   const activeItems = creditCardExpenses.filter(item =>
-    isCardExpenseActive(item, monthIndex, currentYear)
+    isCardExpenseActive(item, monthIndex, currentYear) &&
+    (!excludeExtraordinary || !item.extraordinary)
   );
 
   return activeItems.reduce((acc, item) => acc + item.value, 0);
@@ -68,9 +70,9 @@ export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthInde
 /**
  * Calcula as despesas de cartão ativas em um mês específico
  */
-export const getActiveCardExpenses = (creditCardExpenses, monthIndex, currentYear = new Date().getFullYear()) => {
+export const getActiveCardExpenses = (creditCardExpenses, monthIndex, currentYear = new Date().getFullYear(), excludeExtraordinary = false) => {
   return creditCardExpenses
-    .filter(item => isCardExpenseActive(item, monthIndex, currentYear))
+    .filter(item => isCardExpenseActive(item, monthIndex, currentYear) && (!excludeExtraordinary || !item.extraordinary))
     .map(item => ({
       ...item,
       // Para despesas parceladas, calcula em qual parcela está
@@ -96,7 +98,7 @@ export const getMonthlyBalance = (income, fixedExpenses, cardExpenses) => {
 /**
  * Calcula dados consolidados de todos os meses do ano
  */
-export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTotals) => {
+export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false) => {
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -104,8 +106,8 @@ export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTota
 
   return months.map((monthName, index) => {
     const income = getMonthlyIncome(incomes, index);
-    const fixed = getMonthlyFixedExpenses(expenses, index);
-    const card = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index);
+    const fixed = getMonthlyFixedExpenses(expenses, index, excludeExtraordinary);
+    const card = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary);
     const total = fixed + card;
     const balance = income - total;
 

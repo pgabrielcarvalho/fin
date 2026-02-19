@@ -35,7 +35,8 @@ const MonthlyExpensesView = ({
     value: '',
     type: 'fixed',
     month: selectedMonth,
-    categoryId: ''
+    categoryId: '',
+    extraordinary: false
   });
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -104,6 +105,10 @@ const MonthlyExpensesView = ({
       expenseData.categoryId = newExpense.categoryId;
     }
 
+    if (newExpense.extraordinary) {
+      expenseData.extraordinary = true;
+    }
+
     // Adicionar o campo 'month' apenas se for eventual
     if (newExpense.type === 'eventual') {
       expenseData.month = newExpense.month;
@@ -113,7 +118,7 @@ const MonthlyExpensesView = ({
 
     if (result.success) {
       toast.success('Despesa adicionada!');
-      setNewExpense({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '' });
+      setNewExpense({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '', extraordinary: false });
     } else {
       toast.error(`Erro: ${result.error}`);
     }
@@ -170,6 +175,10 @@ const MonthlyExpensesView = ({
     }
 
     toast.success(`${batchItems.length} ${batchItems.length === 1 ? 'despesa copiada' : 'despesas copiadas'} de ${MONTHS[sourceMonth]}`);
+  };
+
+  const toggleExtraordinary = async (expense) => {
+    await onSave('expenses', { ...expense, extraordinary: !expense.extraordinary });
   };
 
   const handleCategoryChange = async (expense, categoryId) => {
@@ -270,6 +279,15 @@ const MonthlyExpensesView = ({
                 <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap">
                   {MONTHS[expense.month]}
                 </span>
+              )}
+              {expense.extraordinary && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleExtraordinary(expense); }}
+                  className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                  title="Clique para remover marcação extraordinária"
+                >
+                  Extra
+                </button>
               )}
               <CategoryPicker
                 categoryId={expense.categoryId}
@@ -470,11 +488,22 @@ const MonthlyExpensesView = ({
             </button>
           </div>
 
-          {/* Dica sobre tipo de despesa */}
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            {newExpense.type === 'fixed'
-              ? "Despesas fixas aparecem todos os meses"
-              : "Despesas eventuais aparecem apenas no mês selecionado"}
+          {/* Checkbox extraordinária + Dica */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newExpense.extraordinary}
+                onChange={e => setNewExpense({ ...newExpense, extraordinary: e.target.checked })}
+                className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-xs text-slate-600 dark:text-slate-400">Despesa extraordinária</span>
+            </label>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {newExpense.type === 'fixed'
+                ? "Fixas aparecem todos os meses"
+                : "Eventuais aparecem apenas no mês selecionado"}
+            </div>
           </div>
         </div>
       </div>

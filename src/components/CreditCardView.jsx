@@ -35,7 +35,8 @@ const CreditCardView = ({
     installments: 2,
     lastMonth: selectedMonth,
     month: selectedMonth,
-    categoryId: ''
+    categoryId: '',
+    extraordinary: false
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
@@ -155,6 +156,10 @@ const CreditCardView = ({
       expenseData.categoryId = newCardExpense.categoryId;
     }
 
+    if (newCardExpense.extraordinary) {
+      expenseData.extraordinary = true;
+    }
+
     const validation = validateCardExpense(expenseData);
 
     if (!validation.isValid) {
@@ -182,7 +187,8 @@ const CreditCardView = ({
         installments: 2,
         lastMonth: selectedMonth,
         month: selectedMonth,
-        categoryId: ''
+        categoryId: '',
+        extraordinary: false
       });
     }
   };
@@ -229,6 +235,10 @@ const CreditCardView = ({
     // Limpar campo legado se existir
     delete updated.category;
     await onSave('credit_expenses', updated);
+  };
+
+  const toggleExtraordinary = async (item) => {
+    await onSave('credit_expenses', { ...item, extraordinary: !item.extraordinary });
   };
 
   // Helper: resolve nome da categoria (suporta categoryId novo e category legado)
@@ -513,6 +523,16 @@ const CreditCardView = ({
           </div>
         )}
 
+        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={newCardExpense.extraordinary}
+            onChange={e => setNewCardExpense({ ...newCardExpense, extraordinary: e.target.checked })}
+            className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
+          />
+          <span className="text-sm text-slate-600 dark:text-slate-400">Despesa extraordinária</span>
+        </label>
+
         <button
           onClick={handleAdd}
           className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition-colors"
@@ -614,6 +634,15 @@ const CreditCardView = ({
                                   Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
                                 </span>
                               )}
+                              {item.extraordinary && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
+                                  className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                                  title="Clique para remover marcação extraordinária"
+                                >
+                                  Extra
+                                </button>
+                              )}
                             </div>
                           </div>
 
@@ -704,6 +733,15 @@ const CreditCardView = ({
                                 <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
                                   Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
                                 </span>
+                              )}
+                              {item.extraordinary && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
+                                  className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                                  title="Clique para remover marcação extraordinária"
+                                >
+                                  Extra
+                                </button>
                               )}
                             </div>
                           </div>

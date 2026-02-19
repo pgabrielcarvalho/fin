@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { ArrowUpDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpDown, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { MONTHS, formatCurrency } from '../utils/formatters';
 import { getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyCardTotal, getMonthlyBalance } from '../services/calculations';
 
 const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
   const [month1, setMonth1] = useState(new Date().getMonth());
   const [month2, setMonth2] = useState(new Date().getMonth() > 0 ? new Date().getMonth() - 1 : 11);
+  const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
   const getMonthStats = (month) => {
     const income = getMonthlyIncome(incomes, month);
-    const fixedExpenses = getMonthlyFixedExpenses(expenses, month);
-    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, month);
+    const fixedExpenses = getMonthlyFixedExpenses(expenses, month, hideExtraordinary);
+    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, month, undefined, hideExtraordinary);
     const totalExpenses = fixedExpenses + cardExpenses;
     const balance = getMonthlyBalance(income, fixedExpenses, cardExpenses);
 
@@ -66,6 +67,18 @@ const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals 
           <ArrowUpDown size={28} />
           Comparação entre Meses
         </h2>
+        <button
+          onClick={() => setHideExtraordinary(!hideExtraordinary)}
+          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            hideExtraordinary
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+              : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
+          }`}
+          title="Excluir despesas extraordinárias dos cálculos"
+        >
+          <Sparkles size={14} />
+          <span className="hidden sm:inline">Sem extras</span>
+        </button>
       </div>
 
       {/* Seletores de Mês */}

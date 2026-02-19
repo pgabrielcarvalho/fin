@@ -1,11 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Sparkles } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { getYearlyData } from '../services/calculations';
 
 const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+  const [hideExtraordinary, setHideExtraordinary] = useState(false);
+
   const yearData = useMemo(
-    () => getYearlyData(incomes, expenses, creditCardExpenses, invoiceTotals),
-    [incomes, expenses, creditCardExpenses, invoiceTotals]
+    () => getYearlyData(incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary),
+    [incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary]
   );
 
   const yearlyTotals = useMemo(() => {
@@ -18,7 +21,21 @@ const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) =>
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual {new Date().getFullYear()}</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual {new Date().getFullYear()}</h2>
+        <button
+          onClick={() => setHideExtraordinary(!hideExtraordinary)}
+          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            hideExtraordinary
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+              : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
+          }`}
+          title="Excluir despesas extraordinárias dos cálculos"
+        >
+          <Sparkles size={14} />
+          <span className="hidden sm:inline">Sem extras</span>
+        </button>
+      </div>
 
       {/* Tabela */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto">

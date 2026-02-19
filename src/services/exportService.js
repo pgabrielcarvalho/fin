@@ -55,24 +55,26 @@ export const exportToCSV = (data, selectedMonth = null) => {
 
     // Despesas Fixas
     csv += 'DESPESAS FIXAS\n';
-    csv += 'Nome,Valor,Status\n';
+    csv += 'Nome,Valor,Status,Extraordinária\n';
     expenses.forEach(expense => {
       const value = expense.overrides?.[selectedMonth] ?? expense.value;
       const status = expense.paidStatus?.[selectedMonth] ? 'Pago' : 'Pendente';
-      csv += `"${expense.name}",${value},${status}\n`;
+      const extra = expense.extraordinary ? 'Sim' : '';
+      csv += `"${expense.name}",${value},${status},${extra}\n`;
     });
 
     csv += '\n';
 
     // Cartão de Crédito
     csv += 'CARTÃO DE CRÉDITO\n';
-    csv += 'Nome,Valor,Categoria,Status\n';
+    csv += 'Nome,Valor,Categoria,Status,Extraordinária\n';
     creditCardExpenses.forEach(expense => {
       if (isCardExpenseActive(expense, selectedMonth)) {
         const value = expense.overrides?.[selectedMonth] ?? expense.value;
         const category = expense.category || 'Geral';
         const status = expense.paidStatus?.[selectedMonth] ? 'Pago' : 'Pendente';
-        csv += `"${expense.name}",${value},"${category}",${status}\n`;
+        const extra = expense.extraordinary ? 'Sim' : '';
+        csv += `"${expense.name}",${value},"${category}",${status},${extra}\n`;
       }
     });
 
@@ -190,6 +192,7 @@ export const exportToPDF = (data, selectedMonth) => {
         }
         .paid { color: #059669; }
         .pending { color: #f59e0b; }
+        .extraordinary { color: #7c3aed; font-size: 0.8em; font-weight: bold; }
         @media print {
           body { padding: 20px; }
         }
@@ -236,9 +239,10 @@ export const exportToPDF = (data, selectedMonth) => {
           ${expenses.map(expense => {
             const value = expense.overrides?.[selectedMonth] ?? expense.value;
             const isPaid = expense.paidStatus?.[selectedMonth];
+            const extraBadge = expense.extraordinary ? ' <span class="extraordinary">[Extra]</span>' : '';
             return `
               <tr>
-                <td>${expense.name}</td>
+                <td>${expense.name}${extraBadge}</td>
                 <td>${formatCurrency(value)}</td>
                 <td class="${isPaid ? 'paid' : 'pending'}">${isPaid ? 'Pago' : 'Pendente'}</td>
               </tr>
@@ -264,9 +268,10 @@ export const exportToPDF = (data, selectedMonth) => {
               const value = expense.overrides?.[selectedMonth] ?? expense.value;
               const isPaid = expense.paidStatus?.[selectedMonth];
               const category = expense.category || 'Geral';
+              const extraBadge = expense.extraordinary ? ' <span class="extraordinary">[Extra]</span>' : '';
               return `
                 <tr>
-                  <td>${expense.name}</td>
+                  <td>${expense.name}${extraBadge}</td>
                   <td>${formatCurrency(value)}</td>
                   <td>${category}</td>
                   <td class="${isPaid ? 'paid' : 'pending'}">${isPaid ? 'Pago' : 'Pendente'}</td>

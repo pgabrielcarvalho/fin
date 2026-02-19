@@ -47,17 +47,17 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index),
-    despesas: getMonthlyFixedExpenses(expenses, index) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index),
+    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
     saldo: getMonthlyBalance(
       getMonthlyIncome(incomes, index),
-      getMonthlyFixedExpenses(expenses, index),
-      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
+      getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
     )
-  })), [incomes, expenses, creditCardExpenses, invoiceTotals]);
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -80,17 +80,17 @@ export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, 
   );
 };
 
-export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index),
-    despesas: getMonthlyFixedExpenses(expenses, index) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index),
+    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
     saldo: getMonthlyBalance(
       getMonthlyIncome(incomes, index),
-      getMonthlyFixedExpenses(expenses, index),
-      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index)
+      getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
     )
-  })), [incomes, expenses, creditCardExpenses, invoiceTotals]);
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -140,11 +140,12 @@ const DONUT_COLORS = [
   '#06b6d4', '#84cc16', '#e11d48', '#7c3aed'
 ];
 
-export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth, categories = [] }) => {
+export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth, categories = [], excludeExtraordinary = false }) => {
   const categoryTotals = {};
 
   // Despesas fixas/eventuais
   expenses.forEach(expense => {
+    if (excludeExtraordinary && expense.extraordinary) return;
     const expenseType = expense.type || 'fixed';
     const isActive = expenseType === 'fixed' || (expenseType === 'eventual' && expense.month === selectedMonth);
     if (!isActive) return;
@@ -162,6 +163,7 @@ export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoic
 
   // Despesas do cartão (apenas ativas no mês selecionado)
   creditCardExpenses.forEach(expense => {
+    if (excludeExtraordinary && expense.extraordinary) return;
     if (!isCardExpenseActive(expense, selectedMonth)) return;
     const value = expense.overrides?.[selectedMonth] !== undefined ? expense.overrides[selectedMonth] : expense.value;
     let catName = 'Sem Categoria';
