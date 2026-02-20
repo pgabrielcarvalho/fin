@@ -26,18 +26,6 @@ const Dashboard = ({
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
-  // DEBUG: log temporário para identificar itens extraordinários
-  useMemo(() => {
-    const allExtra = [
-      ...incomes.filter(e => e.extraordinary).map(e => ({ tipo: 'receita', subtipo: e.type, nome: e.name, mes: e.month, valor: e.value })),
-      ...expenses.filter(e => e.extraordinary).map(e => ({ tipo: 'despesa', subtipo: e.type || 'fixed', nome: e.name, mes: e.month, valor: e.value })),
-      ...creditCardExpenses.filter(e => e.extraordinary).map(e => ({ tipo: 'cartão', subtipo: e.type || 'fixed', nome: e.name, mes: e.month, valor: e.value }))
-    ];
-    if (allExtra.length > 0) {
-      console.table(allExtra);
-    }
-  }, [incomes, expenses, creditCardExpenses]);
-
   const stats = useMemo(() => {
     const income = getMonthlyIncome(incomes, selectedMonth, hideExtraordinary);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth, hideExtraordinary);
