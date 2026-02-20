@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
-import MonthSelector from './MonthSelector';
+import MonthTabs from './MonthTabs';
 import GoalsAndAlerts from './GoalsAndAlerts';
 import { MonthlyComparisonChart, BalanceTrendChart, ConsolidatedCategoryDonut } from './Charts';
 import { formatCurrency } from '../utils/formatters';
@@ -70,9 +70,9 @@ const Dashboard = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Dashboard</h2>
-        <div className="flex items-center gap-2">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Dashboard</h2>
           <button
             onClick={() => setHideExtraordinary(!hideExtraordinary)}
             className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
@@ -85,8 +85,8 @@ const Dashboard = ({
             <Sparkles size={14} />
             <span className="hidden sm:inline">Sem extras</span>
           </button>
-          <MonthSelector selectedMonth={selectedMonth} onChange={onMonthChange} />
         </div>
+        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

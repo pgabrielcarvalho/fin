@@ -7,9 +7,11 @@ import { useCollection, useDocument, useLazyCollection, useLazyDocument, useFire
 import { useToast } from './contexts/ToastContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
+import { usePinLock } from './hooks/usePinLock';
 
 // Componentes
 import LoginScreen from './components/LoginScreen';
+import PinLockScreen from './components/PinLockScreen';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import IncomeView from './components/IncomeView';
@@ -41,6 +43,7 @@ const App = () => {
   const { user, loading: authLoading, loginWithGoogle, logout } = useAuth();
   const toast = useToast();
   const { darkMode, toggleDarkMode } = useTheme();
+  const pinLock = usePinLock();
 
   // --- ESTADO DA UI ---
   const [activeTab, setActiveTab] = useState('monthly');
@@ -252,6 +255,29 @@ const App = () => {
     return <LoginScreen onLogin={handleLogin} loading={authLoading} />;
   }
 
+  // --- PIN LOCK ---
+  if (pinLock.isSettingUp) {
+    return (
+      <PinLockScreen
+        mode="setup"
+        onSetup={(pin) => {
+          pinLock.setupPin(pin);
+          toast.success('PIN configurado com sucesso!');
+        }}
+        onCancel={pinLock.cancelSetup}
+      />
+    );
+  }
+
+  if (pinLock.isLocked && pinLock.isPinEnabled) {
+    return (
+      <PinLockScreen
+        mode="unlock"
+        onVerify={pinLock.verifyPin}
+      />
+    );
+  }
+
   // --- MAIN APP ---
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200">
@@ -263,6 +289,15 @@ const App = () => {
         onExport={() => setShowExportMenu(true)}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
+        pinEnabled={pinLock.isPinEnabled}
+        onTogglePin={() => {
+          if (pinLock.isPinEnabled) {
+            pinLock.disablePin();
+            toast.info('PIN desativado');
+          } else {
+            pinLock.startSetup();
+          }
+        }}
       />
 
       <ExportMenu

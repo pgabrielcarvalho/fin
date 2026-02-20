@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
-import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+
 import MonthlyNotes from './MonthlyNotes';
 import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
@@ -346,10 +346,6 @@ const MonthlyExpensesView = ({
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Despesas</h2>
-          <CopyFromMonthDropdown
-            selectedMonth={selectedMonth}
-            onCopy={handleCopyFromMonth}
-          />
         </div>
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
@@ -486,7 +482,7 @@ const MonthlyExpensesView = ({
               onClick={handleAdd}
               className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
             >
-              Salvar
+              Adicionar
             </button>
           </div>
 

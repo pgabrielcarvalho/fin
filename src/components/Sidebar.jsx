@@ -14,10 +14,12 @@ import {
   Download,
   Moon,
   Sun,
-  LayoutDashboard
+  LayoutDashboard,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode }) => {
+const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode, pinEnabled, onTogglePin }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
@@ -110,6 +112,17 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
           >
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             {darkMode ? 'Modo Claro' : 'Modo Escuro'}
+          </button>
+          <button
+            onClick={onTogglePin}
+            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
+              pinEnabled
+                ? 'text-emerald-400 hover:bg-slate-800 hover:text-emerald-300'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            {pinEnabled ? <Lock size={20} /> : <Unlock size={20} />}
+            {pinEnabled ? 'PIN Ativo' : 'Ativar PIN'}
           </button>
           <button
             onClick={onLogout}

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
-import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+
 import MonthlyNotes from './MonthlyNotes';
 import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
@@ -205,10 +205,6 @@ const IncomeView = ({
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gestão de Receitas</h2>
-          <CopyFromMonthDropdown
-            selectedMonth={selectedMonth}
-            onCopy={handleCopyFromMonth}
-          />
         </div>
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
@@ -250,70 +246,87 @@ const IncomeView = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Formulário de Adição */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-fit">
-          <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-            <Plus size={20} className="text-emerald-500 dark:text-emerald-400" /> Nova Entrada
-          </h3>
-          <div className="space-y-4">
+      {/* Formulário de Adição */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-2">
+          <Plus size={16} className="text-emerald-500 dark:text-emerald-400" /> Adicionar Nova Receita
+        </h3>
+
+        {/* Toggle de Tipo */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => setNewIncome({ ...newIncome, type: 'fixed' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newIncome.type === 'fixed'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Fixo
+          </button>
+          <button
+            onClick={() => setNewIncome({ ...newIncome, type: 'variable' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newIncome.type === 'variable'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Variável
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
-              type="text"
-              placeholder="Descrição"
+              className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
+              placeholder={newIncome.type === 'fixed' ? "Descrição (Ex: Salário, Aluguel)" : "Descrição (Ex: Freelance, Bônus)"}
               value={newIncome.name}
               onChange={e => setNewIncome({ ...newIncome, name: e.target.value })}
-              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
             />
             <input
+              className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
               type="number"
               placeholder="Valor"
               value={newIncome.value}
               onChange={e => setNewIncome({ ...newIncome, value: e.target.value })}
-              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
             />
-            <div className="flex gap-2">
-              <button
-                onClick={() => setNewIncome({ ...newIncome, type: 'fixed' })}
-                className={`flex-1 py-2 rounded font-medium transition-colors ${
-                  newIncome.type === 'fixed'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                Fixo
-              </button>
-              <button
-                onClick={() => setNewIncome({ ...newIncome, type: 'variable' })}
-                className={`flex-1 py-2 rounded font-medium transition-colors ${
-                  newIncome.type === 'variable'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                Variável
-              </button>
-            </div>
+
+            {/* Select de mês para receitas variáveis */}
             {newIncome.type === 'variable' && (
               <select
+                className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
                 value={newIncome.month}
                 onChange={e => setNewIncome({ ...newIncome, month: parseInt(e.target.value) })}
-                className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
               >
                 {MONTHS.map((m, i) => (
                   <option key={i} value={i}>{m}</option>
                 ))}
               </select>
             )}
+
+            {/* Select de categoria */}
             <select
+              className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
               value={newIncome.categoryId}
               onChange={e => setNewIncome({ ...newIncome, categoryId: e.target.value })}
-              className="w-full p-2 border dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm"
             >
               <option value="">Categoria</option>
               {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+
+            <button
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white px-4 py-2 rounded font-bold hover:bg-emerald-700 transition-colors whitespace-nowrap"
+            >
+              Adicionar
+            </button>
+          </div>
+
+          {/* Checkbox extraordinária + Dica */}
+          <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -321,19 +334,19 @@ const IncomeView = ({
                 onChange={e => setNewIncome({ ...newIncome, extraordinary: e.target.checked })}
                 className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm text-slate-600 dark:text-slate-400">Receita extraordinária</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Receita extraordinária</span>
             </label>
-            <button
-              onClick={handleAdd}
-              className="w-full bg-emerald-600 text-white font-bold py-2 rounded hover:bg-emerald-700 transition-colors"
-            >
-              Adicionar
-            </button>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {newIncome.type === 'fixed'
+                ? "Fixas aparecem todos os meses"
+                : "Variáveis aparecem apenas no mês selecionado"}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Listagem */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Listagem */}
+      <div className="space-y-6">
           {/* Receitas Fixas */}
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between items-center">
@@ -488,7 +501,6 @@ const IncomeView = ({
               )}
             </div>
           </div>
-        </div>
       </div>
 
       {/* Anotações do Mês */}

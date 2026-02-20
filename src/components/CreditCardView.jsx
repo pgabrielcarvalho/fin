@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
-import CopyFromMonthDropdown from './CopyFromMonthDropdown';
+
 import MonthlyNotes from './MonthlyNotes';
 import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
@@ -313,10 +313,6 @@ const CreditCardView = ({
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Cartão de Crédito</h2>
-          <CopyFromMonthDropdown
-            selectedMonth={selectedMonth}
-            onCopy={handleCopyFromMonth}
-          />
         </div>
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
@@ -400,145 +396,141 @@ const CreditCardView = ({
       )}
 
       {/* Adicionar Despesa */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-4 flex gap-2">
-          <Plus size={20} className="text-indigo-500 dark:text-indigo-400" /> Adicionar Despesa do Cartão
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <h3 className="text-sm font-bold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-2">
+          <Plus size={16} className="text-indigo-500 dark:text-indigo-400" /> Adicionar Despesa do Cartão
         </h3>
 
-        {/* Linha 1: Nome e Valor */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <input
-            className="p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-            placeholder="Descrição (Ex: Netflix, Compra do Notebook)"
-            value={newCardExpense.name}
-            onChange={e => setNewCardExpense({ ...newCardExpense, name: e.target.value })}
-          />
-          <input
-            className="p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-            type="number"
-            placeholder="Valor da parcela (R$)"
-            value={newCardExpense.value}
-            onChange={e => setNewCardExpense({ ...newCardExpense, value: e.target.value })}
-          />
-        </div>
-
-        {/* Linha 2: Categoria */}
-        <div className="mb-4">
-          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-2">Categoria</label>
-          <select
-            className="w-full p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-            value={newCardExpense.categoryId}
-            onChange={e => setNewCardExpense({ ...newCardExpense, categoryId: e.target.value })}
+        {/* Toggle de Tipo */}
+        <div className="flex gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'fixed' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newCardExpense.type === 'fixed'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
           >
-            <option value="">Sem categoria</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
+            Fixa
+          </button>
+          <button
+            type="button"
+            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'installment' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newCardExpense.type === 'installment'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Parcelada
+          </button>
+          <button
+            type="button"
+            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'eventual' })}
+            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+              newCardExpense.type === 'eventual'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            Eventual
+          </button>
         </div>
 
-        {/* Linha 3: Tipo (Botões Toggle) */}
-        <div className="mb-4">
-          <label className="text-xs text-slate-500 dark:text-slate-400 block mb-2">Tipo de Despesa</label>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setNewCardExpense({ ...newCardExpense, type: 'fixed' })}
-              className={`py-2 px-4 rounded font-medium transition-colors ${
-                newCardExpense.type === 'fixed'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
-              }`}
-            >
-              Fixa
-            </button>
-            <button
-              type="button"
-              onClick={() => setNewCardExpense({ ...newCardExpense, type: 'installment' })}
-              className={`py-2 px-4 rounded font-medium transition-colors ${
-                newCardExpense.type === 'installment'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
-              }`}
-            >
-              Parcelada
-            </button>
-            <button
-              type="button"
-              onClick={() => setNewCardExpense({ ...newCardExpense, type: 'eventual' })}
-              className={`py-2 px-4 rounded font-medium transition-colors ${
-                newCardExpense.type === 'eventual'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300'
-              }`}
-            >
-              Eventual
-            </button>
-          </div>
-        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
+              placeholder="Descrição (Ex: Netflix, Compra do Notebook)"
+              value={newCardExpense.name}
+              onChange={e => setNewCardExpense({ ...newCardExpense, name: e.target.value })}
+            />
+            <input
+              className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
+              type="number"
+              placeholder="Valor (R$)"
+              value={newCardExpense.value}
+              onChange={e => setNewCardExpense({ ...newCardExpense, value: e.target.value })}
+            />
 
-        {/* Linha 3: Campos condicionais para Parcelada */}
-        {newCardExpense.type === 'installment' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Número de Parcelas</label>
+            {/* Campos condicionais para Parcelada */}
+            {newCardExpense.type === 'installment' && (
+              <>
+                <select
+                  className="w-full sm:w-24 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
+                  value={newCardExpense.installments}
+                  onChange={e => setNewCardExpense({ ...newCardExpense, installments: e.target.value })}
+                >
+                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 18, 24].map(num => (
+                    <option key={num} value={num}>{num}x</option>
+                  ))}
+                </select>
+                <select
+                  className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
+                  value={newCardExpense.lastMonth}
+                  onChange={e => setNewCardExpense({ ...newCardExpense, lastMonth: parseInt(e.target.value) })}
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={i} value={i}>Última: {m}/{String(new Date().getFullYear()).slice(-2)}</option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            {/* Campo condicional para Eventual */}
+            {newCardExpense.type === 'eventual' && (
               <select
-                className="w-full p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-                value={newCardExpense.installments}
-                onChange={e => setNewCardExpense({ ...newCardExpense, installments: e.target.value })}
-              >
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 18, 24].map(num => (
-                  <option key={num} value={num}>{num}x</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Última Parcela em</label>
-              <select
-                className="w-full p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-                value={newCardExpense.lastMonth}
-                onChange={e => setNewCardExpense({ ...newCardExpense, lastMonth: parseInt(e.target.value) })}
+                className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
+                value={newCardExpense.month}
+                onChange={e => setNewCardExpense({ ...newCardExpense, month: parseInt(e.target.value) })}
               >
                 {MONTHS.map((m, i) => (
-                  <option key={i} value={i}>{m}/{String(new Date().getFullYear()).slice(-2)}</option>
+                  <option key={i} value={i}>{m}</option>
                 ))}
               </select>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Linha 3: Campo condicional para Eventual */}
-        {newCardExpense.type === 'eventual' && (
-          <div className="mb-4">
-            <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Mês da Despesa</label>
+            {/* Categoria */}
             <select
-              className="w-full p-2 rounded bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
-              value={newCardExpense.month}
-              onChange={e => setNewCardExpense({ ...newCardExpense, month: parseInt(e.target.value) })}
+              className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
+              value={newCardExpense.categoryId}
+              onChange={e => setNewCardExpense({ ...newCardExpense, categoryId: e.target.value })}
             >
-              {MONTHS.map((m, i) => (
-                <option key={i} value={i}>{m}/{String(new Date().getFullYear()).slice(-2)}</option>
+              <option value="">Categoria</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+
+            <button
+              onClick={handleAdd}
+              className="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 transition-colors whitespace-nowrap"
+            >
+              Adicionar
+            </button>
           </div>
-        )}
 
-        <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={newCardExpense.extraordinary}
-            onChange={e => setNewCardExpense({ ...newCardExpense, extraordinary: e.target.checked })}
-            className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
-          />
-          <span className="text-sm text-slate-600 dark:text-slate-400">Despesa extraordinária</span>
-        </label>
-
-        <button
-          onClick={handleAdd}
-          className="w-full bg-indigo-600 text-white font-bold py-2 rounded hover:bg-indigo-700 transition-colors"
-        >
-          Adicionar
-        </button>
+          {/* Checkbox extraordinária + Dica */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newCardExpense.extraordinary}
+                onChange={e => setNewCardExpense({ ...newCardExpense, extraordinary: e.target.checked })}
+                className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-xs text-slate-600 dark:text-slate-400">Despesa extraordinária</span>
+            </label>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {newCardExpense.type === 'fixed'
+                ? "Fixas aparecem todos os meses"
+                : newCardExpense.type === 'installment'
+                ? "Parceladas aparecem até a última parcela"
+                : "Eventuais aparecem apenas no mês selecionado"}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Lista de Despesas */}
