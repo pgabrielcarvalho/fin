@@ -53,13 +53,21 @@ export const getMonthlyFixedExpenses = (expenses, monthIndex, excludeExtraordina
  * Prioriza valor manual da fatura, senão calcula baseado nos parcelamentos
  */
 export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthIndex, currentYear = new Date().getFullYear(), excludeExtraordinary = false) => {
-  // Se há valor manual (fatura real) e NÃO estamos filtrando extraordinárias, usa ele
   const manualTotal = invoiceTotals?.[monthIndex] || 0;
-  if (manualTotal > 0 && !excludeExtraordinary) {
-    return manualTotal;
+
+  if (manualTotal > 0) {
+    if (!excludeExtraordinary) {
+      return manualTotal;
+    }
+    // Com filtro: subtrai do manual o valor das extraordinárias ativas
+    const extraItems = creditCardExpenses.filter(item =>
+      item.extraordinary && isCardExpenseActive(item, monthIndex, currentYear)
+    );
+    const extraTotal = extraItems.reduce((acc, item) => acc + item.value, 0);
+    return Math.max(0, manualTotal - extraTotal);
   }
 
-  // Senão, calcula baseado nas despesas ativas (fixas + parceladas ativas)
+  // Sem valor manual, calcula baseado nas despesas ativas
   const activeItems = creditCardExpenses.filter(item =>
     isCardExpenseActive(item, monthIndex, currentYear) &&
     (!excludeExtraordinary || !item.extraordinary)

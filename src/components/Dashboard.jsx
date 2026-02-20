@@ -41,11 +41,17 @@ const Dashboard = ({
     };
   }, [selectedMonth, incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary]);
 
-  // Calcular info das extraordinárias excluídas
+  // Calcular info das extraordinárias excluídas (apenas itens ativos no mês)
   const extraInfo = useMemo(() => {
     if (!hideExtraordinary) return null;
-    const extraIncomes = incomes.filter(e => e.extraordinary);
-    const extraExpenses = expenses.filter(e => e.extraordinary);
+
+    // Contar apenas extraordinárias ativas no mês selecionado
+    const extraIncomes = incomes.filter(e => e.extraordinary && (
+      e.type === 'fixed' || (e.type === 'variable' && e.month === selectedMonth)
+    ));
+    const extraExpenses = expenses.filter(e => e.extraordinary && (
+      (e.type || 'fixed') === 'fixed' || ((e.type || 'fixed') === 'eventual' && e.month === selectedMonth)
+    ));
     const extraCards = creditCardExpenses.filter(e => e.extraordinary);
     const count = extraIncomes.length + extraExpenses.length + extraCards.length;
     if (count === 0) return null;
