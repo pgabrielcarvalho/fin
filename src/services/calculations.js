@@ -1,8 +1,9 @@
 /**
  * Calcula a receita total de um mês específico
  */
-export const getMonthlyIncome = (incomes, monthIndex) => {
+export const getMonthlyIncome = (incomes, monthIndex, excludeExtraordinary = false) => {
   return incomes.reduce((acc, item) => {
+    if (excludeExtraordinary && item.extraordinary) return acc;
     // Receitas fixas (aparecem em todos os meses)
     if (item.type === 'fixed') {
       const monthValue = item.overrides?.[monthIndex] !== undefined
@@ -105,7 +106,7 @@ export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTota
   ];
 
   return months.map((monthName, index) => {
-    const income = getMonthlyIncome(incomes, index);
+    const income = getMonthlyIncome(incomes, index, excludeExtraordinary);
     const fixed = getMonthlyFixedExpenses(expenses, index, excludeExtraordinary);
     const card = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary);
     const total = fixed + card;

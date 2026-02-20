@@ -9,7 +9,7 @@ const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals 
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
   const getMonthStats = (month) => {
-    const income = getMonthlyIncome(incomes, month);
+    const income = getMonthlyIncome(incomes, month, hideExtraordinary);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, month, hideExtraordinary);
     const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, month, undefined, hideExtraordinary);
     const totalExpenses = fixedExpenses + cardExpenses;

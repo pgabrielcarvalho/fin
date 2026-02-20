@@ -26,7 +26,7 @@ const Dashboard = ({
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
   const stats = useMemo(() => {
-    const income = getMonthlyIncome(incomes, selectedMonth);
+    const income = getMonthlyIncome(incomes, selectedMonth, hideExtraordinary);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth, hideExtraordinary);
     const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, hideExtraordinary);
     const totalExpenses = fixedExpenses + cardExpenses;
@@ -44,9 +44,10 @@ const Dashboard = ({
   // Calcular info das extraordinárias excluídas
   const extraInfo = useMemo(() => {
     if (!hideExtraordinary) return null;
+    const extraIncomes = incomes.filter(e => e.extraordinary);
     const extraExpenses = expenses.filter(e => e.extraordinary);
     const extraCards = creditCardExpenses.filter(e => e.extraordinary);
-    const count = extraExpenses.length + extraCards.length;
+    const count = extraIncomes.length + extraExpenses.length + extraCards.length;
     if (count === 0) return null;
 
     const fixedFull = getMonthlyFixedExpenses(expenses, selectedMonth, false);
@@ -56,7 +57,7 @@ const Dashboard = ({
     const excludedValue = (fixedFull - fixedFiltered) + (cardFull - cardFiltered);
 
     return { count, excludedValue };
-  }, [hideExtraordinary, expenses, creditCardExpenses, invoiceTotals, selectedMonth]);
+  }, [hideExtraordinary, incomes, expenses, creditCardExpenses, invoiceTotals, selectedMonth]);
 
   return (
     <div className="space-y-6 animate-fade-in">

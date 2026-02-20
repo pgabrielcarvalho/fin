@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
@@ -280,15 +280,17 @@ const MonthlyExpensesView = ({
                   {MONTHS[expense.month]}
                 </span>
               )}
-              {expense.extraordinary && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleExtraordinary(expense); }}
-                  className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                  title="Clique para remover marcação extraordinária"
-                >
-                  Extra
-                </button>
-              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleExtraordinary(expense); }}
+                className={`px-1.5 py-0.5 text-[10px] md:text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  expense.extraordinary
+                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                    : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
+                }`}
+                title={expense.extraordinary ? 'Remover marcação extraordinária' : 'Marcar como extraordinária'}
+              >
+                <Sparkles size={12} />
+              </button>
               <CategoryPicker
                 categoryId={expense.categoryId}
                 categories={categories}

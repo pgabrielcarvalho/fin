@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, TrendingUp, Settings2 } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import CopyFromMonthDropdown from './CopyFromMonthDropdown';
 import MonthlyNotes from './MonthlyNotes';
@@ -31,7 +31,8 @@ const IncomeView = ({
     value: '',
     type: 'fixed',
     month: selectedMonth,
-    categoryId: ''
+    categoryId: '',
+    extraordinary: false
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
 
@@ -97,14 +98,22 @@ const IncomeView = ({
       incomeData.categoryId = newIncome.categoryId;
     }
 
+    if (newIncome.extraordinary) {
+      incomeData.extraordinary = true;
+    }
+
     const result = await onSave('incomes', incomeData);
 
     if (result.success) {
       toast.success('Receita adicionada com sucesso!');
-      setNewIncome({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '' });
+      setNewIncome({ name: '', value: '', type: 'fixed', month: selectedMonth, categoryId: '', extraordinary: false });
     } else {
       toast.error(`Erro ao adicionar receita: ${result.error}`);
     }
+  };
+
+  const toggleExtraordinary = async (income) => {
+    await onSave('incomes', { ...income, extraordinary: !income.extraordinary });
   };
 
   const handleCategoryChange = async (income, categoryId) => {
@@ -305,6 +314,15 @@ const IncomeView = ({
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={newIncome.extraordinary}
+                onChange={e => setNewIncome({ ...newIncome, extraordinary: e.target.checked })}
+                className="rounded border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm text-slate-600 dark:text-slate-400">Receita extraordinária</span>
+            </label>
             <button
               onClick={handleAdd}
               className="w-full bg-emerald-600 text-white font-bold py-2 rounded hover:bg-emerald-700 transition-colors"
@@ -347,6 +365,17 @@ const IncomeView = ({
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
+                                  className={`px-1.5 py-0.5 rounded-md transition-colors ${
+                                    item.extraordinary
+                                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                                      : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
+                                  }`}
+                                  title={item.extraordinary ? 'Remover marcação extraordinária' : 'Marcar como extraordinária'}
+                                >
+                                  <Sparkles size={12} />
+                                </button>
                                 <CategoryPicker
                                   categoryId={item.categoryId}
                                   categories={categories}
@@ -423,6 +452,17 @@ const IncomeView = ({
                           <div className="flex items-center gap-2">
                             <DragHandle {...dragHandleProps} />
                             <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
+                              className={`px-1.5 py-0.5 rounded-md transition-colors ${
+                                item.extraordinary
+                                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+                                  : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
+                              }`}
+                              title={item.extraordinary ? 'Remover marcação extraordinária' : 'Marcar como extraordinária'}
+                            >
+                              <Sparkles size={12} />
+                            </button>
                             <CategoryPicker
                               categoryId={item.categoryId}
                               categories={categories}

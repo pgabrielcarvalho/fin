@@ -50,10 +50,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
-    receitas: getMonthlyIncome(incomes, index),
+    receitas: getMonthlyIncome(incomes, index, excludeExtraordinary),
     despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
     saldo: getMonthlyBalance(
-      getMonthlyIncome(incomes, index),
+      getMonthlyIncome(incomes, index, excludeExtraordinary),
       getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
       getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
     )
@@ -83,10 +83,10 @@ export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, 
 export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
-    receitas: getMonthlyIncome(incomes, index),
+    receitas: getMonthlyIncome(incomes, index, excludeExtraordinary),
     despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
     saldo: getMonthlyBalance(
-      getMonthlyIncome(incomes, index),
+      getMonthlyIncome(incomes, index, excludeExtraordinary),
       getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
       getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
     )

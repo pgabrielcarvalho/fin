@@ -44,11 +44,12 @@ export const exportToCSV = (data, selectedMonth = null) => {
 
     // Receitas
     csv += 'RECEITAS\n';
-    csv += 'Nome,Valor,Status\n';
+    csv += 'Nome,Valor,Status,Extraordinária\n';
     incomes.forEach(income => {
       const value = income.overrides?.[selectedMonth] ?? income.value;
       const status = income.paidStatus?.[selectedMonth] ? 'Recebido' : 'Pendente';
-      csv += `"${income.name}",${value},${status}\n`;
+      const extra = income.extraordinary ? 'Sim' : '';
+      csv += `"${income.name}",${value},${status},${extra}\n`;
     });
 
     csv += '\n';
@@ -215,9 +216,10 @@ export const exportToPDF = (data, selectedMonth) => {
           ${incomes.map(income => {
             const value = income.overrides?.[selectedMonth] ?? income.value;
             const isPaid = income.paidStatus?.[selectedMonth];
+            const extraBadge = income.extraordinary ? ' <span class="extraordinary">[Extra]</span>' : '';
             return `
               <tr>
-                <td>${income.name}</td>
+                <td>${income.name}${extraBadge}</td>
                 <td>${formatCurrency(value)}</td>
                 <td class="${isPaid ? 'paid' : 'pending'}">${isPaid ? 'Recebido' : 'Pendente'}</td>
               </tr>
