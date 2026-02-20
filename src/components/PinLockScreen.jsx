@@ -22,18 +22,18 @@ const NumPad = ({ onPress, onDelete, disabled }) => {
   const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'delete'];
 
   return (
-    <div className="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
+    <div className="grid grid-cols-3 gap-4 w-fit mx-auto">
       {keys.map((key, i) => {
-        if (key === null) return <div key={i} />;
+        if (key === null) return <div key={i} className="w-[80px] h-[80px]" />;
         if (key === 'delete') {
           return (
             <button
               key={i}
               onClick={onDelete}
               disabled={disabled}
-              className="h-16 rounded-2xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 transition-colors disabled:opacity-30"
+              className="w-[80px] h-[80px] rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 active:bg-slate-200 dark:active:bg-slate-600 transition-colors disabled:opacity-30"
             >
-              <Delete size={24} />
+              <Delete size={28} />
             </button>
           );
         }
@@ -42,7 +42,7 @@ const NumPad = ({ onPress, onDelete, disabled }) => {
             key={i}
             onClick={() => onPress(key)}
             disabled={disabled}
-            className="h-16 rounded-2xl bg-white dark:bg-slate-700 text-2xl font-semibold text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 active:bg-slate-100 dark:active:bg-slate-500 active:scale-95 transition-all disabled:opacity-30"
+            className="w-[80px] h-[80px] rounded-full bg-white dark:bg-slate-700 text-3xl font-light text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-500 active:scale-95 transition-all disabled:opacity-30"
           >
             {key}
           </button>
