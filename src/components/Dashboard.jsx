@@ -8,7 +8,8 @@ import {
   getMonthlyIncome,
   getMonthlyFixedExpenses,
   getMonthlyCardTotal,
-  getMonthlyBalance
+  getMonthlyBalance,
+  isCardExpenseActive
 } from '../services/calculations';
 
 const Dashboard = ({
@@ -24,6 +25,18 @@ const Dashboard = ({
   categories = []
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
+
+  // DEBUG: log temporário para identificar itens extraordinários
+  useMemo(() => {
+    const allExtra = [
+      ...incomes.filter(e => e.extraordinary).map(e => ({ tipo: 'receita', subtipo: e.type, nome: e.name, mes: e.month, valor: e.value })),
+      ...expenses.filter(e => e.extraordinary).map(e => ({ tipo: 'despesa', subtipo: e.type || 'fixed', nome: e.name, mes: e.month, valor: e.value })),
+      ...creditCardExpenses.filter(e => e.extraordinary).map(e => ({ tipo: 'cartão', subtipo: e.type || 'fixed', nome: e.name, mes: e.month, valor: e.value }))
+    ];
+    if (allExtra.length > 0) {
+      console.table(allExtra);
+    }
+  }, [incomes, expenses, creditCardExpenses]);
 
   const stats = useMemo(() => {
     const income = getMonthlyIncome(incomes, selectedMonth, hideExtraordinary);
@@ -52,15 +65,17 @@ const Dashboard = ({
     const extraExpenses = expenses.filter(e => e.extraordinary && (
       (e.type || 'fixed') === 'fixed' || ((e.type || 'fixed') === 'eventual' && e.month === selectedMonth)
     ));
-    const extraCards = creditCardExpenses.filter(e => e.extraordinary);
+    const extraCards = creditCardExpenses.filter(e =>
+      e.extraordinary && isCardExpenseActive(e, selectedMonth)
+    );
     const count = extraIncomes.length + extraExpenses.length + extraCards.length;
-    if (count === 0) return null;
 
     const fixedFull = getMonthlyFixedExpenses(expenses, selectedMonth, false);
     const fixedFiltered = getMonthlyFixedExpenses(expenses, selectedMonth, true);
     const cardFull = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, false);
     const cardFiltered = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, true);
     const excludedValue = (fixedFull - fixedFiltered) + (cardFull - cardFiltered);
+    if (count === 0 && excludedValue === 0) return null;
 
     return { count, excludedValue };
   }, [hideExtraordinary, incomes, expenses, creditCardExpenses, invoiceTotals, selectedMonth]);
