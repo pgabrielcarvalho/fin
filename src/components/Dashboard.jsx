@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import GoalsAndAlerts from './GoalsAndAlerts';
+import SpendingSummary from './SpendingSummary';
 import { MonthlyComparisonChart, BalanceTrendChart, ConsolidatedCategoryDonut } from './Charts';
 import { formatCurrency } from '../utils/formatters';
 import {
@@ -22,7 +23,10 @@ const Dashboard = ({
   onNavigate,
   goals,
   onSaveGoals,
-  categories = []
+  categories = [],
+  spendingSummary = {},
+  onSaveSpendingSummary,
+  onSaveCategories
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
@@ -147,6 +151,15 @@ const Dashboard = ({
           )}
         </div>
       </div>
+
+      {/* Resumo de Gastos (BTG) */}
+      <SpendingSummary
+        selectedMonth={selectedMonth}
+        categories={categories}
+        spendingSummary={spendingSummary}
+        onSaveSpendingSummary={onSaveSpendingSummary}
+        onSaveCategories={onSaveCategories}
+      />
 
       {/* Metas e Alertas */}
       <GoalsAndAlerts
