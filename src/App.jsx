@@ -71,7 +71,6 @@ const App = () => {
   const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES);
   const { data: obligations } = useLazyCollection(user, 'obligations', activeTab === 'office', INITIAL_OBLIGATIONS);
   const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''));
-  const { data: spendingSummary } = useLazyDocument(user, 'spending_summary', activeTab === 'dashboard', {});
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -116,10 +115,6 @@ const App = () => {
 
   const handleSaveGoals = async (newGoals) => {
     await saveDocument('goals', newGoals);
-  };
-
-  const handleSaveSpendingSummary = async (newSummary) => {
-    await saveDocument('spending_summary', newSummary);
   };
 
   const handleSaveCategories = async (newCategories) => {
@@ -325,12 +320,7 @@ const App = () => {
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
               onNavigate={setActiveTab}
-              goals={goals}
-              onSaveGoals={handleSaveGoals}
               categories={expenseCategories}
-              spendingSummary={spendingSummary}
-              onSaveSpendingSummary={handleSaveSpendingSummary}
-              onSaveCategories={handleSaveCategories}
             />
           )}
 

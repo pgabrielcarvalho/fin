@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
-import GoalsAndAlerts from './GoalsAndAlerts';
-import SpendingSummary from './SpendingSummary';
 import { MonthlyComparisonChart, BalanceTrendChart, ConsolidatedCategoryDonut } from './Charts';
 import { formatCurrency } from '../utils/formatters';
 import {
@@ -21,12 +19,7 @@ const Dashboard = ({
   creditCardExpenses,
   invoiceTotals,
   onNavigate,
-  goals,
-  onSaveGoals,
-  categories = [],
-  spendingSummary = {},
-  onSaveSpendingSummary,
-  onSaveCategories
+  categories = []
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
@@ -151,26 +144,6 @@ const Dashboard = ({
           )}
         </div>
       </div>
-
-      {/* Resumo de Gastos (BTG) */}
-      <SpendingSummary
-        selectedMonth={selectedMonth}
-        categories={categories}
-        spendingSummary={spendingSummary}
-        onSaveSpendingSummary={onSaveSpendingSummary}
-        onSaveCategories={onSaveCategories}
-      />
-
-      {/* Metas e Alertas */}
-      <GoalsAndAlerts
-        selectedMonth={selectedMonth}
-        incomes={incomes}
-        expenses={expenses}
-        creditCardExpenses={creditCardExpenses}
-        invoiceTotals={invoiceTotals}
-        goals={goals}
-        onSaveGoals={onSaveGoals}
-      />
 
       {/* Gráfico de Categorias */}
       <ConsolidatedCategoryDonut
