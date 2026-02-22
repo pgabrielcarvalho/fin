@@ -613,7 +613,14 @@ const CreditCardView = ({
                               {isFixed && (
                                 <>
                                   <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Fixa</span>
-                                  <span className="ml-2 text-slate-400 dark:text-slate-500">Base: {formatCurrency(item.value)}</span>
+                                  <span className="ml-2 text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                    Base: R$
+                                    <EditableValue
+                                      value={item.value}
+                                      onSave={(val) => onSave('credit_expenses', { ...item, value: val })}
+                                      className="w-16 bg-transparent text-slate-400 dark:text-slate-500 outline-none font-mono"
+                                    />
+                                  </span>
                                 </>
                               )}
                               {item.type === 'installment' && (
@@ -713,8 +720,13 @@ const CreditCardView = ({
                                   <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">
                                     Fixa
                                   </span>
-                                  <span className="ml-2 text-slate-400 dark:text-slate-500">
-                                    Base: {formatCurrency(item.value)}
+                                  <span className="ml-2 text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                    Base: R$
+                                    <EditableValue
+                                      value={item.value}
+                                      onSave={(val) => onSave('credit_expenses', { ...item, value: val })}
+                                      className="w-16 bg-transparent text-slate-400 dark:text-slate-500 outline-none font-mono"
+                                    />
                                   </span>
                                 </>
                               )}
