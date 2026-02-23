@@ -19,8 +19,11 @@ import {
   Unlock
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode, pinEnabled, onTogglePin }) => {
+const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode, pinEnabled, onTogglePin, obligations = [], selectedMonth }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const currentMonth = selectedMonth ?? new Date().getMonth();
+  const pendingObligations = obligations.filter(o => !o.doneStatus[currentMonth]).length;
 
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -30,7 +33,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
     { id: 'yearly', icon: BarChart3, label: 'Visão Anual' },
     { id: 'comparison', icon: PieChart, label: 'Comparação' },
     { id: 'vacation', icon: Plane, label: 'Fundo Férias' },
-    { id: 'office', icon: Briefcase, label: 'Escritório' },
+    { id: 'office', icon: Briefcase, label: 'Escritório', badge: pendingObligations > 0 ? pendingObligations : null },
   ];
 
   const handleTabChange = (tabId) => {
@@ -94,7 +97,13 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
                   : 'hover:bg-slate-800 text-slate-300'
               }`}
             >
-              <item.icon size={20} /> {item.label}
+              <item.icon size={20} />
+              <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <span className="bg-amber-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>

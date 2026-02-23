@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -35,6 +35,7 @@ const IncomeView = ({
     extraordinary: false
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Filtrar receitas por tipo
   const fixedIncomes = useMemo(() => incomes.filter(i => i.type === 'fixed'), [incomes]);
@@ -209,42 +210,52 @@ const IncomeView = ({
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card de Receitas Fixas */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <TrendingUp size={60} />
-          </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
-            Receitas Fixas
-          </div>
-          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-            {formatCurrency(totals.fixedTotal)}
-          </div>
-        </div>
+      {/* Toggle Resumo */}
+      <button
+        onClick={() => setShowSummary(!showSummary)}
+        className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+      >
+        {showSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        Resumo
+      </button>
 
-        {/* Card de Receitas Variáveis */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <TrendingUp size={60} />
+      {showSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card de Receitas Fixas */}
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <TrendingUp size={60} />
+            </div>
+            <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+              Receitas Fixas
+            </div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+              {formatCurrency(totals.fixedTotal)}
+            </div>
           </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
-            Receitas Variáveis
-          </div>
-          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-            {formatCurrency(totals.variableTotal)}
-          </div>
-        </div>
 
-        {/* Card de Total */}
-        <div className="bg-emerald-600 dark:bg-emerald-700 text-white p-4 rounded-xl shadow-sm border relative overflow-hidden">
-          <div className="text-white/80 text-xs mb-1 font-medium">Total de Receitas</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(totals.totalIncome)}
+          {/* Card de Receitas Variáveis */}
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <TrendingUp size={60} />
+            </div>
+            <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+              Receitas Variáveis
+            </div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+              {formatCurrency(totals.variableTotal)}
+            </div>
+          </div>
+
+          {/* Card de Total */}
+          <div className="bg-emerald-600 dark:bg-emerald-700 text-white p-4 rounded-xl shadow-sm border relative overflow-hidden">
+            <div className="text-white/80 text-xs mb-1 font-medium">Total de Receitas</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totals.totalIncome)}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Formulário de Adição */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">

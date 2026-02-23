@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers, Sparkles } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -40,6 +40,7 @@ const CreditCardView = ({
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Usar hook de reordenação para todos os itens cadastrados
   const { sortedItems: sortedCreditExpenses } = useReorder(
@@ -317,6 +318,16 @@ const CreditCardView = ({
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
+      {/* Toggle Resumo */}
+      <button
+        onClick={() => setShowSummary(!showSummary)}
+        className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+      >
+        {showSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        Resumo
+      </button>
+
+      {showSummary && <>
       {/* Card de Fatura */}
       <div className="bg-indigo-600 dark:bg-indigo-700 p-6 rounded-xl shadow-lg text-white">
         <h3 className="font-bold mb-4">Fechamento da Fatura ({MONTHS[selectedMonth]})</h3>
@@ -394,6 +405,7 @@ const CreditCardView = ({
           </div>
         </div>
       )}
+      </>}
 
       {/* Adicionar Despesa */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">

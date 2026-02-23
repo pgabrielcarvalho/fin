@@ -69,7 +69,7 @@ const App = () => {
   const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''));
   const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''));
   const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES);
-  const { data: obligations } = useLazyCollection(user, 'obligations', activeTab === 'office', INITIAL_OBLIGATIONS);
+  const { data: obligations } = useCollection(user, 'obligations', INITIAL_OBLIGATIONS);
   const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''));
 
   // --- HANDLERS ---
@@ -290,6 +290,8 @@ const App = () => {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         pinEnabled={pinLock.isPinEnabled}
+        obligations={obligations}
+        selectedMonth={selectedMonth}
         onTogglePin={() => {
           if (pinLock.isPinEnabled) {
             pinLock.disablePin();

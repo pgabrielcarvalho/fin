@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -40,6 +40,7 @@ const MonthlyExpensesView = ({
   });
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
 
@@ -350,60 +351,70 @@ const MonthlyExpensesView = ({
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card de Receita */}
-        <div
-          className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors cursor-pointer"
-          onClick={() => onNavigate?.('incomes')}
-        >
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <TrendingUp size={60} />
-          </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
-            Receita
-          </div>
-          <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-            {formatCurrency(stats.income)}
-          </div>
-        </div>
+      {/* Toggle Resumo */}
+      <button
+        onClick={() => setShowSummary(!showSummary)}
+        className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+      >
+        {showSummary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        Resumo
+      </button>
 
-        {/* Card de Despesas */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500 dark:text-red-400">
-            <TrendingDown size={60} />
-          </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
-            Total Despesas
-          </div>
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-            {formatCurrency(stats.totalExpenses)}
-          </div>
-          <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-            Fixo: {formatCurrency(stats.fixedExpenses)} | Cartão:{' '}
-            {formatCurrency(stats.cardExpenses)}
-          </div>
-        </div>
-
-        {/* Card de Saldo */}
-        <div
-          className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
-            stats.balance >= 0
-              ? 'bg-emerald-600 dark:bg-emerald-700 text-white'
-              : 'bg-red-600 dark:bg-red-700 text-white'
-          }`}
-        >
-          <div className="text-white/80 text-xs mb-1 font-medium">Resultado</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(stats.balance)}
-          </div>
-          {stats.income > 0 && (
-            <div className="mt-1 text-xs text-white/70">
-              {((stats.balance / stats.income) * 100).toFixed(1)}% economizado
+      {showSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card de Receita */}
+          <div
+            className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden group hover:border-emerald-200 dark:hover:border-emerald-700 transition-colors cursor-pointer"
+            onClick={() => onNavigate?.('incomes')}
+          >
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <TrendingUp size={60} />
             </div>
-          )}
+            <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+              Receita
+            </div>
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+              {formatCurrency(stats.income)}
+            </div>
+          </div>
+
+          {/* Card de Despesas */}
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500 dark:text-red-400">
+              <TrendingDown size={60} />
+            </div>
+            <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+              Total Despesas
+            </div>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {formatCurrency(stats.totalExpenses)}
+            </div>
+            <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+              Fixo: {formatCurrency(stats.fixedExpenses)} | Cartão:{' '}
+              {formatCurrency(stats.cardExpenses)}
+            </div>
+          </div>
+
+          {/* Card de Saldo */}
+          <div
+            className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
+              stats.balance >= 0
+                ? 'bg-emerald-600 dark:bg-emerald-700 text-white'
+                : 'bg-red-600 dark:bg-red-700 text-white'
+            }`}
+          >
+            <div className="text-white/80 text-xs mb-1 font-medium">Resultado</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.balance)}
+            </div>
+            {stats.income > 0 && (
+              <div className="mt-1 text-xs text-white/70">
+                {((stats.balance / stats.income) * 100).toFixed(1)}% economizado
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Formulário de Adição */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
