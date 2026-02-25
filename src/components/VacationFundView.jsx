@@ -1,19 +1,61 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard, Check, X } from 'lucide-react';
 import MonthlyNotes from './MonthlyNotes';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import EditableValue from './EditableValue';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { getVacationTotals } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 import { useDragReorder } from '../hooks/useDragReorder';
 
+const EditableName = ({ value, onSave, className = '' }) => {
+  const [editing, setEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+
+  const commit = () => {
+    setEditing(false);
+    const trimmed = localValue.trim();
+    if (trimmed && trimmed !== value) {
+      onSave(trimmed);
+    } else {
+      setLocalValue(value);
+    }
+  };
+
+  return editing ? (
+    <input
+      autoFocus
+      value={localValue}
+      onChange={e => setLocalValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => {
+        if (e.key === 'Enter') e.target.blur();
+        if (e.key === 'Escape') { setLocalValue(value); setEditing(false); }
+      }}
+      className={`text-sm px-1 py-0.5 rounded border border-slate-300 dark:border-slate-600 outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-slate-700 ${className}`}
+    />
+  ) : (
+    <span
+      onClick={() => { setEditing(true); setLocalValue(value); }}
+      className={`cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-1 py-0.5 rounded transition-colors ${className}`}
+      title="Clique para editar"
+    >
+      {value}
+    </span>
+  );
+};
+
 const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, onSaveNotes }) => {
   const toast = useToast();
   const [newVacationIncome, setNewVacationIncome] = useState({ name: '', value: '' });
   const [newVacationExpense, setNewVacationExpense] = useState({ name: '', value: '' });
   const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const handleUpdateItem = async (collection, item, updates) => {
+    await onSave(collection, { ...item, ...updates });
+  };
 
   // Usar hooks de reordenação para entradas e saídas
   const {
@@ -155,12 +197,20 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
                 <SortableItem key={item.id} id={item.id}>
                   {({ dragHandleProps }) => (
                     <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <DragHandle {...dragHandleProps} />
-                        <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
+                        <EditableName
+                          value={item.name}
+                          onSave={(name) => handleUpdateItem('vacation_incomes', item, { name })}
+                          className="text-slate-800 dark:text-slate-200 truncate"
+                        />
                       </div>
-                      <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center">
-                        {formatCurrency(item.value)}
+                      <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center flex-shrink-0">
+                        <EditableValue
+                          value={item.value}
+                          onSave={(value) => handleUpdateItem('vacation_incomes', item, { value })}
+                          className="w-24 text-right text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-transparent border-b border-transparent hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+                        />
                         <button onClick={() => handleDelete('vacation_incomes', item.id)}>
                           <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
                         </button>
@@ -203,12 +253,20 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
                 <SortableItem key={item.id} id={item.id}>
                   {({ dragHandleProps }) => (
                     <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <DragHandle {...dragHandleProps} />
-                        <span className="text-slate-800 dark:text-slate-200">{item.name}</span>
+                        <EditableName
+                          value={item.name}
+                          onSave={(name) => handleUpdateItem('vacation_expenses', item, { name })}
+                          className="text-slate-800 dark:text-slate-200 truncate"
+                        />
                       </div>
-                      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center">
-                        {formatCurrency(item.value)}
+                      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center flex-shrink-0">
+                        <EditableValue
+                          value={item.value}
+                          onSave={(value) => handleUpdateItem('vacation_expenses', item, { value })}
+                          className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+                        />
                         <button onClick={() => handleDelete('vacation_expenses', item.id)}>
                           <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
                         </button>

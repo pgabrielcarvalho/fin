@@ -25,7 +25,7 @@ const KeyboardShortcutsModal = ({ isOpen, onClose }) => {
     { key: 'C', description: 'Cartão', category: 'Navegação' },
     { key: 'A', description: 'Visão Anual', category: 'Navegação' },
     { key: 'F', description: 'Fundo Férias', category: 'Navegação' },
-    { key: 'O', description: 'Escritório', category: 'Navegação' },
+    { key: 'O', description: 'Checklist', category: 'Navegação' },
     { key: '←', description: 'Mês Anterior', category: 'Navegação' },
     { key: '→', description: 'Próximo Mês', category: 'Navegação' },
     { key: 'Ctrl+E', description: 'Exportar', category: 'Ações', mac: 'Cmd+E' },

@@ -98,7 +98,7 @@ const OfficeView = ({
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Briefcase className="text-purple-500" size={24} />
-            Escritório
+            Checklist
           </h2>
         </div>
         <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
