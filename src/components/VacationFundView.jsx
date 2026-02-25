@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard, Check, X } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard, ChevronDown, ChevronUp, FolderPlus } from 'lucide-react';
 import MonthlyNotes from './MonthlyNotes';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
@@ -51,13 +51,17 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
   const toast = useToast();
   const [newVacationIncome, setNewVacationIncome] = useState({ name: '', value: '' });
   const [newVacationExpense, setNewVacationExpense] = useState({ name: '', value: '' });
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newSubItems, setNewSubItems] = useState({}); // { [projectId]: { name, value } }
+  const [addMode, setAddMode] = useState('expense'); // 'expense' | 'project'
+  const [expandedProjects, setExpandedProjects] = useState(new Set());
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const handleUpdateItem = async (collection, item, updates) => {
     await onSave(collection, { ...item, ...updates });
   };
 
-  // Usar hooks de reordenação para entradas e saídas
+  // Hooks de reordenação para entradas
   const {
     sortedItems: sortedIncomes
   } = useReorder(vacationFund.incomes, (updatedItem) => onSave('vacation_incomes', updatedItem));
@@ -67,12 +71,51 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
   } = useReorder(vacationFund.expenses, (updatedItem) => onSave('vacation_expenses', updatedItem));
 
   const { handleDragReorder: handleDragReorderIncomes } = useDragReorder('vacation_incomes', sortedIncomes, onBatchSave);
-  const { handleDragReorder: handleDragReorderExpenses } = useDragReorder('vacation_expenses', sortedExpenses, onBatchSave);
+
+  // Agrupar saídas em projetos, sub-itens e avulsos
+  const { projects, subItemsByProject, standaloneItems, topLevelItems } = useMemo(() => {
+    const projects = [];
+    const subItemsByProject = {};
+    const standaloneItems = [];
+
+    for (const item of sortedExpenses) {
+      if (item.type === 'project') {
+        projects.push(item);
+        if (!subItemsByProject[item.id]) subItemsByProject[item.id] = [];
+      } else if (item.projectId) {
+        if (!subItemsByProject[item.projectId]) subItemsByProject[item.projectId] = [];
+        subItemsByProject[item.projectId].push(item);
+      } else {
+        standaloneItems.push(item);
+      }
+    }
+
+    // Itens de nível superior para drag-and-drop: projetos + avulsos, na ordem original
+    const topLevelItems = sortedExpenses.filter(i => i.type === 'project' || (!i.projectId && i.type !== 'project'));
+
+    return { projects, subItemsByProject, standaloneItems, topLevelItems };
+  }, [sortedExpenses]);
+
+  const { handleDragReorder: handleDragReorderExpenses } = useDragReorder('vacation_expenses', topLevelItems, onBatchSave);
+
+  const projectTotal = (projectId) => {
+    const items = subItemsByProject[projectId] || [];
+    return items.reduce((acc, item) => acc + (item.value || 0), 0);
+  };
 
   const totals = useMemo(
     () => getVacationTotals({ incomes: sortedIncomes, expenses: sortedExpenses }),
     [sortedIncomes, sortedExpenses]
   );
+
+  const toggleProject = (id) => {
+    setExpandedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const addIncome = async () => {
     if (!newVacationIncome.name || !newVacationIncome.value) {
@@ -120,12 +163,200 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
     }
   };
 
+  const addProject = async () => {
+    if (!newProjectName.trim()) {
+      toast.error('Informe o nome do projeto');
+      return;
+    }
+
+    const maxOrder = vacationFund.expenses.reduce(
+      (max, exp) => Math.max(max, exp.order !== undefined ? exp.order : 0),
+      0
+    );
+
+    const result = await onSave('vacation_expenses', {
+      name: newProjectName.trim(),
+      type: 'project',
+      order: maxOrder + 1
+    });
+
+    if (result.success) {
+      toast.success('Projeto criado!');
+      setNewProjectName('');
+    }
+  };
+
+  const addSubItem = async (projectId) => {
+    const sub = newSubItems[projectId] || { name: '', value: '' };
+    if (!sub.name || !sub.value) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+
+    const siblings = subItemsByProject[projectId] || [];
+    const maxOrder = siblings.reduce(
+      (max, item) => Math.max(max, item.order !== undefined ? item.order : 0),
+      0
+    );
+
+    const result = await onSave('vacation_expenses', {
+      name: sub.name,
+      value: parseFloat(sub.value),
+      projectId,
+      order: maxOrder + 1
+    });
+
+    if (result.success) {
+      toast.success('Item adicionado ao projeto!');
+      setNewSubItems(prev => ({ ...prev, [projectId]: { name: '', value: '' } }));
+    }
+  };
+
   const handleDelete = async (collection, id) => {
     if (window.confirm('Excluir este item?')) {
       await onDelete(collection, id);
       toast.success('Item excluído');
     }
   };
+
+  const handleDeleteProject = async (projectId) => {
+    const subItems = subItemsByProject[projectId] || [];
+    const count = subItems.length;
+    const msg = count > 0
+      ? `Excluir este projeto e seus ${count} item(ns)?`
+      : 'Excluir este projeto?';
+
+    if (!window.confirm(msg)) return;
+
+    // Deletar sub-itens primeiro, depois o projeto
+    for (const sub of subItems) {
+      await onDelete('vacation_expenses', sub.id);
+    }
+    await onDelete('vacation_expenses', projectId);
+    toast.success('Projeto excluído');
+  };
+
+  const getSubItemState = (projectId) => {
+    return newSubItems[projectId] || { name: '', value: '' };
+  };
+
+  const updateSubItemState = (projectId, field, val) => {
+    setNewSubItems(prev => ({
+      ...prev,
+      [projectId]: { ...getSubItemState(projectId), [field]: val }
+    }));
+  };
+
+  // Renderizar um projeto (colapsado ou expandido)
+  const renderProject = (project, dragHandleProps) => {
+    const isExpanded = expandedProjects.has(project.id);
+    const total = projectTotal(project.id);
+    const subItems = subItemsByProject[project.id] || [];
+    const subState = getSubItemState(project.id);
+
+    return (
+      <div className="rounded-lg border border-red-200 dark:border-red-800/40 bg-red-50/30 dark:bg-red-900/10">
+        {/* Header do projeto */}
+        <div className="flex items-center gap-2 px-2 py-1.5">
+          <DragHandle {...dragHandleProps} />
+          <button
+            onClick={() => toggleProject(project.id)}
+            className="p-0.5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          <div className="flex-1 min-w-0">
+            <EditableName
+              value={project.name}
+              onSave={(name) => handleUpdateItem('vacation_expenses', project, { name })}
+              className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate"
+            />
+          </div>
+          <span className="font-mono font-bold text-red-600 dark:text-red-400 text-sm flex-shrink-0">
+            {formatCurrency(total)}
+          </span>
+          <button onClick={() => handleDeleteProject(project.id)}>
+            <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
+          </button>
+        </div>
+
+        {/* Sub-itens expandidos */}
+        {isExpanded && (
+          <div className="border-t border-red-200/60 dark:border-red-800/30">
+            <div className="pl-4 border-l-2 border-red-300 dark:border-red-700 ml-4 py-1">
+              {subItems.map((sub) => (
+                <div key={sub.id} className="flex items-center gap-2 py-1 px-2 text-sm">
+                  <div className="flex-1 min-w-0">
+                    <EditableName
+                      value={sub.name}
+                      onSave={(name) => handleUpdateItem('vacation_expenses', sub, { name })}
+                      className="text-slate-700 dark:text-slate-300 truncate"
+                    />
+                  </div>
+                  <EditableValue
+                    value={sub.value}
+                    onSave={(value) => handleUpdateItem('vacation_expenses', sub, { value })}
+                    className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+                  />
+                  <button onClick={() => handleDelete('vacation_expenses', sub.id)}>
+                    <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
+                  </button>
+                </div>
+              ))}
+              {/* Formulário inline para adicionar sub-item */}
+              <div className="flex gap-2 py-1 px-2 mt-1">
+                <input
+                  placeholder="Desc"
+                  value={subState.name}
+                  onChange={e => updateSubItemState(project.id, 'name', e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addSubItem(project.id); }}
+                  className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
+                />
+                <input
+                  placeholder="R$"
+                  type="number"
+                  value={subState.value}
+                  onChange={e => updateSubItemState(project.id, 'value', e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addSubItem(project.id); }}
+                  className="w-20 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
+                />
+                <button
+                  onClick={() => addSubItem(project.id)}
+                  className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Renderizar despesa avulsa
+  const renderStandaloneExpense = (item, dragHandleProps) => (
+    <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <DragHandle {...dragHandleProps} />
+        <EditableName
+          value={item.name}
+          onSave={(name) => handleUpdateItem('vacation_expenses', item, { name })}
+          className="text-slate-800 dark:text-slate-200 truncate"
+        />
+      </div>
+      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center flex-shrink-0">
+        <EditableValue
+          value={item.value}
+          onSave={(value) => handleUpdateItem('vacation_expenses', item, { value })}
+          className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+        />
+        <button onClick={() => handleDelete('vacation_expenses', item.id)}>
+          <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
+        </button>
+      </span>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -248,55 +479,85 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 flex flex-col">
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border-b dark:border-slate-700 font-bold text-red-800 dark:text-red-300">Saídas</div>
           <div className="flex-1 overflow-auto p-4 space-y-2">
-            <SortableList items={sortedExpenses} onReorder={handleDragReorderExpenses}>
-              {sortedExpenses.map((item) => (
+            <SortableList items={topLevelItems} onReorder={handleDragReorderExpenses}>
+              {topLevelItems.map((item) => (
                 <SortableItem key={item.id} id={item.id}>
                   {({ dragHandleProps }) => (
-                    <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <DragHandle {...dragHandleProps} />
-                        <EditableName
-                          value={item.name}
-                          onSave={(name) => handleUpdateItem('vacation_expenses', item, { name })}
-                          className="text-slate-800 dark:text-slate-200 truncate"
-                        />
-                      </div>
-                      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center flex-shrink-0">
-                        <EditableValue
-                          value={item.value}
-                          onSave={(value) => handleUpdateItem('vacation_expenses', item, { value })}
-                          className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
-                        />
-                        <button onClick={() => handleDelete('vacation_expenses', item.id)}>
-                          <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
-                        </button>
-                      </span>
-                    </div>
+                    item.type === 'project'
+                      ? renderProject(item, dragHandleProps)
+                      : renderStandaloneExpense(item, dragHandleProps)
                   )}
                 </SortableItem>
               ))}
             </SortableList>
           </div>
-          <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex gap-2">
-            <input
-              placeholder="Desc"
-              value={newVacationExpense.name}
-              onChange={e => setNewVacationExpense({ ...newVacationExpense, name: e.target.value })}
-              className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
-            />
-            <input
-              placeholder="R$"
-              type="number"
-              value={newVacationExpense.value}
-              onChange={e => setNewVacationExpense({ ...newVacationExpense, value: e.target.value })}
-              className="w-20 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
-            />
-            <button
-              onClick={addExpense}
-              className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
-            >
-              <Plus size={16} />
-            </button>
+          <div className="p-3 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-700 space-y-2">
+            {/* Toggle Projeto / Despesa */}
+            <div className="flex gap-1 mb-1">
+              <button
+                onClick={() => setAddMode('expense')}
+                className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                  addMode === 'expense'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                Despesa
+              </button>
+              <button
+                onClick={() => setAddMode('project')}
+                className={`text-xs px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 ${
+                  addMode === 'project'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                }`}
+              >
+                <FolderPlus size={12} />
+                Projeto
+              </button>
+            </div>
+
+            {addMode === 'expense' ? (
+              <div className="flex gap-2">
+                <input
+                  placeholder="Desc"
+                  value={newVacationExpense.name}
+                  onChange={e => setNewVacationExpense({ ...newVacationExpense, name: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') addExpense(); }}
+                  className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
+                />
+                <input
+                  placeholder="R$"
+                  type="number"
+                  value={newVacationExpense.value}
+                  onChange={e => setNewVacationExpense({ ...newVacationExpense, value: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') addExpense(); }}
+                  className="w-20 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
+                />
+                <button
+                  onClick={addExpense}
+                  className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  placeholder="Nome do projeto"
+                  value={newProjectName}
+                  onChange={e => setNewProjectName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addProject(); }}
+                  className="flex-1 text-sm p-1 rounded border dark:border-slate-600 focus:ring-2 focus:ring-red-500 outline-none bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-200"
+                />
+                <button
+                  onClick={addProject}
+                  className="bg-red-600 text-white p-1 rounded hover:bg-red-700 flex items-center gap-1"
+                >
+                  <FolderPlus size={16} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

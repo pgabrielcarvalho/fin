@@ -136,7 +136,9 @@ export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTota
  */
 export const getVacationTotals = (vacationFund) => {
   const incomeTotal = vacationFund.incomes.reduce((acc, item) => acc + item.value, 0);
-  const expenseTotal = vacationFund.expenses.reduce((acc, item) => acc + item.value, 0);
+  const expenseTotal = vacationFund.expenses.reduce(
+    (acc, item) => acc + (item.type === 'project' ? 0 : (item.value || 0)), 0
+  );
   const balance = incomeTotal - expenseTotal;
 
   return {
