@@ -13,7 +13,8 @@ import {
 export const exportToJSON = (data) => {
   const exportData = {
     exportDate: new Date().toISOString(),
-    version: '2.0.0',
+    version: '3.0.0',
+    year: data.year || new Date().getFullYear(),
     ...data
   };
 
@@ -33,7 +34,7 @@ export const exportToJSON = (data) => {
 /**
  * Exporta dados financeiros em formato CSV
  */
-export const exportToCSV = (data, selectedMonth = null) => {
+export const exportToCSV = (data, selectedMonth = null, selectedYear = new Date().getFullYear()) => {
   const { incomes, expenses, creditCardExpenses, invoiceTotals } = data;
 
   let csv = '';
@@ -70,7 +71,7 @@ export const exportToCSV = (data, selectedMonth = null) => {
     csv += 'CARTÃO DE CRÉDITO\n';
     csv += 'Nome,Valor,Categoria,Status,Extraordinária\n';
     creditCardExpenses.forEach(expense => {
-      if (isCardExpenseActive(expense, selectedMonth)) {
+      if (isCardExpenseActive(expense, selectedMonth, selectedYear)) {
         const value = expense.overrides?.[selectedMonth] ?? expense.value;
         const category = expense.category || 'Geral';
         const status = expense.paidStatus?.[selectedMonth] ? 'Pago' : 'Pendente';
@@ -115,8 +116,8 @@ export const exportToCSV = (data, selectedMonth = null) => {
   const link = document.createElement('a');
   link.href = url;
   const filename = selectedMonth !== null
-    ? `relatorio-${MONTHS[selectedMonth].toLowerCase()}-${new Date().getFullYear()}.csv`
-    : `relatorio-anual-${new Date().getFullYear()}.csv`;
+    ? `relatorio-${MONTHS[selectedMonth].toLowerCase()}-${selectedYear}.csv`
+    : `relatorio-anual-${selectedYear}.csv`;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
@@ -127,7 +128,7 @@ export const exportToCSV = (data, selectedMonth = null) => {
 /**
  * Exporta dados financeiros em formato PDF (HTML para impressão)
  */
-export const exportToPDF = (data, selectedMonth) => {
+export const exportToPDF = (data, selectedMonth, selectedYear = new Date().getFullYear()) => {
   const { incomes, expenses, creditCardExpenses, invoiceTotals } = data;
 
   const income = getMonthlyIncome(incomes, selectedMonth);
@@ -200,7 +201,7 @@ export const exportToPDF = (data, selectedMonth) => {
       </style>
     </head>
     <body>
-      <h1>Relatório Financeiro - ${MONTHS[selectedMonth]} ${new Date().getFullYear()}</h1>
+      <h1>Relatório Financeiro - ${MONTHS[selectedMonth]} ${selectedYear}</h1>
       <p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
 
       <h2>Receitas</h2>
@@ -265,7 +266,7 @@ export const exportToPDF = (data, selectedMonth) => {
         </thead>
         <tbody>
           ${creditCardExpenses
-            .filter(expense => isCardExpenseActive(expense, selectedMonth))
+            .filter(expense => isCardExpenseActive(expense, selectedMonth, selectedYear))
             .map(expense => {
               const value = expense.overrides?.[selectedMonth] ?? expense.value;
               const isPaid = expense.paidStatus?.[selectedMonth];

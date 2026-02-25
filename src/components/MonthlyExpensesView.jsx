@@ -27,7 +27,8 @@ const MonthlyExpensesView = ({
   notes,
   onSaveNotes,
   categories = [],
-  onSaveCategories
+  onSaveCategories,
+  selectedYear
 }) => {
   const toast = useToast();
   const [newExpense, setNewExpense] = useState({
@@ -42,13 +43,13 @@ const MonthlyExpensesView = ({
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
 
-  const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
+  const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear);
 
   // Cálculos do resumo (Dashboard)
   const stats = useMemo(() => {
     const income = getMonthlyIncome(incomes, selectedMonth);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth);
-    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth);
+    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear);
     const totalExpenses = fixedExpenses + cardExpenses;
     const balance = getMonthlyBalance(income, fixedExpenses, cardExpenses);
 

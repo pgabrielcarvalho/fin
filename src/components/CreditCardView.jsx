@@ -25,7 +25,8 @@ const CreditCardView = ({
   notes,
   onSaveNotes,
   categories = [],
-  onSaveCategories
+  onSaveCategories,
+  selectedYear
 }) => {
   const toast = useToast();
   const [newCardExpense, setNewCardExpense] = useState({
@@ -48,9 +49,11 @@ const CreditCardView = ({
     (updatedItem) => onSave('credit_expenses', updatedItem)
   );
 
+  const currentYear = selectedYear || new Date().getFullYear();
+
   const activeItems = useMemo(
-    () => getActiveCardExpenses(sortedCreditExpenses, selectedMonth),
-    [sortedCreditExpenses, selectedMonth]
+    () => getActiveCardExpenses(sortedCreditExpenses, selectedMonth, currentYear),
+    [sortedCreditExpenses, selectedMonth, currentYear]
   );
 
   const { handleDragReorder } = useDragReorder('credit_expenses', activeItems, onBatchSave, sortedCreditExpenses);
@@ -72,17 +75,15 @@ const CreditCardView = ({
 
   // Parcelas que terminam neste mês
   const endingInstallments = useMemo(() => {
-    const currentYear = new Date().getFullYear();
     return sortedCreditExpenses.filter(item =>
       item.type === 'installment' &&
       item.lastMonth === selectedMonth &&
       (item.lastYear || currentYear) === currentYear
     );
-  }, [sortedCreditExpenses, selectedMonth]);
+  }, [sortedCreditExpenses, selectedMonth, currentYear]);
 
   // Parcelas que terminam no mês seguinte (aviso antecipado)
   const endingNextMonth = useMemo(() => {
-    const currentYear = new Date().getFullYear();
     const nextMonth = (selectedMonth + 1) % 12;
     const nextYear = selectedMonth === 11 ? currentYear + 1 : currentYear;
     return sortedCreditExpenses.filter(item =>
@@ -90,7 +91,7 @@ const CreditCardView = ({
       item.lastMonth === nextMonth &&
       (item.lastYear || currentYear) === nextYear
     );
-  }, [sortedCreditExpenses, selectedMonth]);
+  }, [sortedCreditExpenses, selectedMonth, currentYear]);
 
   const manualInvoiceTotal = invoiceTotals?.[selectedMonth] || 0;
   const finalCardTotal = manualInvoiceTotal > 0 ? manualInvoiceTotal : plannedCardTotal;
@@ -141,8 +142,6 @@ const CreditCardView = ({
   }, [activeItems, groupByCategory, categories, selectedMonth]);
 
   const handleAdd = async () => {
-    const currentYear = new Date().getFullYear();
-
     const expenseData = {
       name: newCardExpense.name,
       value: parseFloat(newCardExpense.value),
@@ -484,7 +483,7 @@ const CreditCardView = ({
                   onChange={e => setNewCardExpense({ ...newCardExpense, lastMonth: parseInt(e.target.value) })}
                 >
                   {MONTHS.map((m, i) => (
-                    <option key={i} value={i}>Última: {m}/{String(new Date().getFullYear()).slice(-2)}</option>
+                    <option key={i} value={i}>Última: {m}/{String(currentYear).slice(-2)}</option>
                   ))}
                 </select>
               </>
@@ -618,7 +617,7 @@ const CreditCardView = ({
                               {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
                               {item.type === 'installment' && (
                                 <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
-                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)}
+                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(currentYear).slice(-2)}
                                 </span>
                               )}
                               {item.type === 'eventual' && (
@@ -710,7 +709,7 @@ const CreditCardView = ({
                               {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
                               {item.type === 'installment' && (
                                 <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
-                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)}
+                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(currentYear).slice(-2)}
                                 </span>
                               )}
                               {item.type === 'eventual' && (

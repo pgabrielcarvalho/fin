@@ -19,14 +19,15 @@ const Dashboard = ({
   creditCardExpenses,
   invoiceTotals,
   onNavigate,
-  categories = []
+  categories = [],
+  selectedYear
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
   const stats = useMemo(() => {
     const income = getMonthlyIncome(incomes, selectedMonth, hideExtraordinary);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, selectedMonth, hideExtraordinary);
-    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, hideExtraordinary);
+    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear, hideExtraordinary);
     const totalExpenses = fixedExpenses + cardExpenses;
     const balance = getMonthlyBalance(income, fixedExpenses, cardExpenses);
 
@@ -51,14 +52,14 @@ const Dashboard = ({
       (e.type || 'fixed') === 'fixed' || ((e.type || 'fixed') === 'eventual' && e.month === selectedMonth)
     ));
     const extraCards = creditCardExpenses.filter(e =>
-      e.extraordinary && isCardExpenseActive(e, selectedMonth)
+      e.extraordinary && isCardExpenseActive(e, selectedMonth, selectedYear)
     );
     const count = extraIncomes.length + extraExpenses.length + extraCards.length;
 
     const fixedFull = getMonthlyFixedExpenses(expenses, selectedMonth, false);
     const fixedFiltered = getMonthlyFixedExpenses(expenses, selectedMonth, true);
-    const cardFull = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, false);
-    const cardFiltered = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, undefined, true);
+    const cardFull = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear, false);
+    const cardFiltered = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear, true);
     const excludedValue = (fixedFull - fixedFiltered) + (cardFull - cardFiltered);
     if (count === 0 && excludedValue === 0) return null;
 
@@ -153,6 +154,7 @@ const Dashboard = ({
         selectedMonth={selectedMonth}
         categories={categories}
         excludeExtraordinary={hideExtraordinary}
+        selectedYear={selectedYear}
       />
 
       {/* Gráficos */}
@@ -163,6 +165,7 @@ const Dashboard = ({
           creditCardExpenses={creditCardExpenses}
           invoiceTotals={invoiceTotals}
           excludeExtraordinary={hideExtraordinary}
+          selectedYear={selectedYear}
         />
         <BalanceTrendChart
           incomes={incomes}
@@ -170,6 +173,7 @@ const Dashboard = ({
           creditCardExpenses={creditCardExpenses}
           invoiceTotals={invoiceTotals}
           excludeExtraordinary={hideExtraordinary}
+          selectedYear={selectedYear}
         />
       </div>
     </div>

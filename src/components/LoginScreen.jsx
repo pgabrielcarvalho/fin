@@ -8,7 +8,7 @@ const LoginScreen = ({ onLogin, loading }) => {
         <div className="bg-emerald-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
           <Wallet size={40} className="text-emerald-600" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">Planejamento {new Date().getFullYear()}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 mb-2">FINPG - Gestão Financeira</h1>
         <p className="text-slate-500 mb-8 text-sm">
           Faça login com Google para acessar e sincronizar seus dados entre dispositivos.
         </p>

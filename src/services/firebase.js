@@ -51,4 +51,18 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { auth, db, appId };
+/**
+ * Retorna os segmentos de caminho base do usuário com namespace de ano
+ */
+const getUserYearPath = (userId, year) => [
+  'artifacts', appId, 'users', userId, 'years', String(year)
+];
+
+/**
+ * Retorna os segmentos de caminho base do usuário (sem ano - caminho legado)
+ */
+const getUserLegacyPath = (userId) => [
+  'artifacts', appId, 'users', userId
+];
+
+export { auth, db, appId, getUserYearPath, getUserLegacyPath };

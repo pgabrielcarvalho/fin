@@ -1,7 +1,7 @@
 {
-  "name": "Finanças 2026",
-  "short_name": "Finanças",
-  "description": "Gestão financeira pessoal",
+  "name": "FINPG - Gestão Financeira",
+  "short_name": "FINPG",
+  "description": "FINPG - Gestão financeira pessoal",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",

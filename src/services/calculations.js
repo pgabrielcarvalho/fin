@@ -107,7 +107,7 @@ export const getMonthlyBalance = (income, fixedExpenses, cardExpenses) => {
 /**
  * Calcula dados consolidados de todos os meses do ano
  */
-export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false) => {
+export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false, currentYear = new Date().getFullYear()) => {
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -116,7 +116,7 @@ export const getYearlyData = (incomes, expenses, creditCardExpenses, invoiceTota
   return months.map((monthName, index) => {
     const income = getMonthlyIncome(incomes, index, excludeExtraordinary);
     const fixed = getMonthlyFixedExpenses(expenses, index, excludeExtraordinary);
-    const card = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary);
+    const card = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, currentYear, excludeExtraordinary);
     const total = fixed + card;
     const balance = income - total;
 

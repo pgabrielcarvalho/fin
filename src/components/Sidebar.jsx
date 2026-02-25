@@ -16,21 +16,41 @@ import {
   Sun,
   LayoutDashboard,
   Lock,
-  Unlock
+  Unlock,
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 
 const SIDEBAR_WIDTH = 256; // w-64 = 16rem = 256px
 const EDGE_ZONE = 30; // pixels da borda esquerda para iniciar swipe
 const SWIPE_THRESHOLD = 0.3; // 30% do width para decidir abrir/fechar
 
-const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode, pinEnabled, onTogglePin, obligations = [], selectedMonth }) => {
+const Sidebar = ({
+  activeTab,
+  onTabChange,
+  user,
+  onLogout,
+  onExport,
+  darkMode,
+  onToggleDarkMode,
+  pinEnabled,
+  onTogglePin,
+  obligations = [],
+  selectedMonth,
+  selectedYear,
+  availableYears = [],
+  onYearChange,
+  onStartNewYear
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [swipeOffset, setSwipeOffset] = useState(0); // 0 = fechado, SIDEBAR_WIDTH = aberto
   const [isSwiping, setIsSwiping] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const swipeDirection = useRef(null); // 'horizontal' | 'vertical' | null
   const sidebarRef = useRef(null);
+  const yearPickerRef = useRef(null);
 
   const currentMonth = selectedMonth ?? new Date().getMonth();
   const pendingObligations = obligations.filter(o => !o.doneStatus[currentMonth]).length;
@@ -50,6 +70,20 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
     onTabChange(tabId);
     setIsOpen(false);
   };
+
+  // Fechar year picker ao clicar fora
+  useEffect(() => {
+    if (!showYearPicker) return;
+
+    const handleClickOutside = (e) => {
+      if (yearPickerRef.current && !yearPickerRef.current.contains(e.target)) {
+        setShowYearPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showYearPicker]);
 
   // --- Swipe com transição visual em tempo real ---
   const handleTouchStart = useCallback((e) => {
@@ -156,13 +190,65 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
 
   const showOverlay = isOpen || (isSwiping && swipeOffset > 0);
 
+  const nextYear = availableYears.length > 0 ? Math.max(...availableYears) + 1 : selectedYear + 1;
+
+  // Componente do seletor de ano
+  const YearSelector = ({ className = '' }) => (
+    <div className={`relative ${className}`} ref={yearPickerRef}>
+      <button
+        onClick={() => setShowYearPicker(!showYearPicker)}
+        className="flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-0.5 rounded transition-colors text-emerald-600 dark:text-emerald-400 font-bold"
+      >
+        {selectedYear}
+        <ChevronDown size={14} className={`transition-transform ${showYearPicker ? 'rotate-180' : ''}`} />
+      </button>
+
+      {showYearPicker && (
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 min-w-[140px] py-1">
+          {availableYears.map(year => (
+            <button
+              key={year}
+              onClick={() => {
+                onYearChange(year);
+                setShowYearPicker(false);
+              }}
+              className={`w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-2 ${
+                year === selectedYear
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+            >
+              {year === selectedYear && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+              )}
+              {year}
+            </button>
+          ))}
+          <div className="border-t border-slate-200 dark:border-slate-700 mt-1 pt-1">
+            <button
+              onClick={() => {
+                setShowYearPicker(false);
+                onStartNewYear();
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
+            >
+              <Plus size={14} />
+              Iniciar {nextYear}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
       {/* Mobile: Header fixo com menu hambúrguer */}
       <div className="md:hidden bg-white dark:bg-slate-900 text-slate-800 dark:text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-md dark:shadow-lg border-b border-slate-200 dark:border-transparent">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Wallet className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" size={20} />
-          <h1 className="text-base font-bold truncate">Finanças {new Date().getFullYear()}</h1>
+          <h1 className="text-base font-bold truncate">FINPG</h1>
+          <YearSelector />
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -200,7 +286,9 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
       >
         <div className="mb-8 p-2 hidden md:block">
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Wallet className="text-emerald-600 dark:text-emerald-400" /> Finanças {new Date().getFullYear()}
+            <Wallet className="text-emerald-600 dark:text-emerald-400" />
+            <span>FINPG</span>
+            <YearSelector />
           </h1>
           <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">
             {user?.email}

@@ -3,12 +3,12 @@ import { Sparkles } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { getYearlyData } from '../services/calculations';
 
-const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals, selectedYear }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
   const yearData = useMemo(
-    () => getYearlyData(incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary),
-    [incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary]
+    () => getYearlyData(incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary, selectedYear),
+    [incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary, selectedYear]
   );
 
   const yearlyTotals = useMemo(() => {
@@ -22,7 +22,7 @@ const YearlyView = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) =>
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual {new Date().getFullYear()}</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Visão Anual {selectedYear}</h2>
         <button
           onClick={() => setHideExtraordinary(!hideExtraordinary)}
           className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${

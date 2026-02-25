@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 // Hooks
 import { useAuth } from './hooks/useAuth';
 import { useCollection, useDocument, useLazyCollection, useLazyDocument, useFirestoreOperations } from './hooks/useFirestore';
+import { useYearManager } from './hooks/useYearManager';
 import { useToast } from './contexts/ToastContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
@@ -45,32 +46,42 @@ const App = () => {
   const { darkMode, toggleDarkMode } = useTheme();
   const pinLock = usePinLock();
 
+  // --- ANO ---
+  const {
+    selectedYear,
+    setSelectedYear,
+    availableYears,
+    migrating,
+    migrationDone,
+    startNewYear
+  } = useYearManager(user);
+
   // --- ESTADO DA UI ---
   const [activeTab, setActiveTab] = useState('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  // --- OPERAÇÕES DO FIRESTORE ---
-  const { saveItem, batchSaveItems, deleteItem, saveDocument } = useFirestoreOperations(user);
+  // --- OPERAÇÕES DO FIRESTORE (com ano) ---
+  const { saveItem, batchSaveItems, deleteItem, saveDocument } = useFirestoreOperations(user, selectedYear);
 
-  // --- DADOS DO FIRESTORE (sempre ativos) ---
-  const { data: incomes } = useCollection(user, 'incomes', INITIAL_INCOMES);
-  const { data: expenses } = useCollection(user, 'expenses', INITIAL_EXPENSES);
-  const { data: creditCardExpenses } = useCollection(user, 'credit_expenses', INITIAL_CREDIT_EXPENSES);
-  const { data: invoiceTotals } = useDocument(user, 'invoice_totals', Array(12).fill(0));
-  const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } });
-  const { data: expenseCategories } = useDocument(user, 'expense_categories', DEFAULT_CATEGORIES);
+  // --- DADOS DO FIRESTORE (sempre ativos, com ano) ---
+  const { data: incomes } = useCollection(user, 'incomes', INITIAL_INCOMES, selectedYear);
+  const { data: expenses } = useCollection(user, 'expenses', INITIAL_EXPENSES, selectedYear);
+  const { data: creditCardExpenses } = useCollection(user, 'credit_expenses', INITIAL_CREDIT_EXPENSES, selectedYear);
+  const { data: invoiceTotals } = useDocument(user, 'invoice_totals', Array(12).fill(0), selectedYear);
+  const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } }, selectedYear);
+  const { data: expenseCategories } = useDocument(user, 'expense_categories', DEFAULT_CATEGORIES, selectedYear);
 
-  // --- DADOS LAZY (ativam só na aba correspondente) ---
-  const { data: vacationIncomes } = useLazyCollection(user, 'vacation_incomes', activeTab === 'vacation', INITIAL_VACATION_INCOMES);
-  const { data: vacationExpenses } = useLazyCollection(user, 'vacation_expenses', activeTab === 'vacation', INITIAL_VACATION_EXPENSES);
-  const { data: incomesNotes } = useLazyDocument(user, 'incomes_notes', activeTab === 'incomes', Array(12).fill(''));
-  const { data: expensesNotes } = useLazyDocument(user, 'expenses_notes', activeTab === 'monthly', Array(12).fill(''));
-  const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''));
-  const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''));
-  const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES);
-  const { data: obligations } = useCollection(user, 'obligations', INITIAL_OBLIGATIONS);
-  const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''));
+  // --- DADOS LAZY (ativam só na aba correspondente, com ano) ---
+  const { data: vacationIncomes } = useLazyCollection(user, 'vacation_incomes', activeTab === 'vacation', INITIAL_VACATION_INCOMES, selectedYear);
+  const { data: vacationExpenses } = useLazyCollection(user, 'vacation_expenses', activeTab === 'vacation', INITIAL_VACATION_EXPENSES, selectedYear);
+  const { data: incomesNotes } = useLazyDocument(user, 'incomes_notes', activeTab === 'incomes', Array(12).fill(''), selectedYear);
+  const { data: expensesNotes } = useLazyDocument(user, 'expenses_notes', activeTab === 'monthly', Array(12).fill(''), selectedYear);
+  const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''), selectedYear);
+  const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''), selectedYear);
+  const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES, selectedYear);
+  const { data: obligations } = useCollection(user, 'obligations', INITIAL_OBLIGATIONS, selectedYear);
+  const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''), selectedYear);
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -141,7 +152,8 @@ const App = () => {
       obligations,
       obligationsNotes,
       expenseCategories,
-      incomeCategories
+      incomeCategories,
+      year: selectedYear
     };
 
     try {
@@ -149,10 +161,10 @@ const App = () => {
         exportToJSON(data);
         toast.success('Backup JSON exportado com sucesso!');
       } else if (format === 'csv') {
-        exportToCSV(data, month);
+        exportToCSV(data, month, selectedYear);
         toast.success('Relatório CSV exportado com sucesso!');
       } else if (format === 'pdf') {
-        exportToPDF(data, month);
+        exportToPDF(data, month, selectedYear);
         toast.success('Abrindo visualização para impressão...');
       }
     } catch (error) {
@@ -220,6 +232,19 @@ const App = () => {
     }
   };
 
+  const handleStartNewYear = async () => {
+    const nextYear = Math.max(...availableYears) + 1;
+    toast.info(`Criando ano ${nextYear}...`);
+
+    const result = await startNewYear(nextYear);
+
+    if (result.success) {
+      toast.success(`Ano ${nextYear} criado! Despesas e receitas fixas foram copiadas.`);
+    } else {
+      toast.error(`Erro ao criar ano ${nextYear}: ${result.error || 'Erro desconhecido'}`);
+    }
+  };
+
   // Atalhos de teclado
   useKeyboardShortcuts([
     { keys: APP_SHORTCUTS.DASHBOARD, action: () => setActiveTab('dashboard') },
@@ -253,6 +278,17 @@ const App = () => {
   // --- LOGIN SCREEN ---
   if (!user) {
     return <LoginScreen onLogin={handleLogin} loading={authLoading} />;
+  }
+
+  // --- MIGRAÇÃO ---
+  if (migrating) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 gap-2 flex-col">
+        <Loader2 className="animate-spin" size={32} />
+        <span className="text-lg">Migrando dados...</span>
+        <span className="text-sm">Isso acontece apenas uma vez</span>
+      </div>
+    );
   }
 
   // --- PIN LOCK ---
@@ -292,6 +328,10 @@ const App = () => {
         pinEnabled={pinLock.isPinEnabled}
         obligations={obligations}
         selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        availableYears={availableYears}
+        onYearChange={setSelectedYear}
+        onStartNewYear={handleStartNewYear}
         onTogglePin={() => {
           if (pinLock.isPinEnabled) {
             pinLock.disablePin();
@@ -323,6 +363,7 @@ const App = () => {
               invoiceTotals={invoiceTotals}
               onNavigate={setActiveTab}
               categories={expenseCategories}
+              selectedYear={selectedYear}
             />
           )}
 
@@ -357,6 +398,7 @@ const App = () => {
               onSaveNotes={handleSaveExpensesNotes}
               categories={expenseCategories}
               onSaveCategories={handleSaveCategories}
+              selectedYear={selectedYear}
             />
           )}
 
@@ -374,6 +416,7 @@ const App = () => {
               onSaveNotes={handleSaveCreditNotes}
               categories={expenseCategories}
               onSaveCategories={handleSaveCategories}
+              selectedYear={selectedYear}
             />
           )}
 
@@ -383,6 +426,7 @@ const App = () => {
               expenses={expenses}
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
+              selectedYear={selectedYear}
             />
           )}
 
@@ -416,6 +460,7 @@ const App = () => {
               expenses={expenses}
               creditCardExpenses={creditCardExpenses}
               invoiceTotals={invoiceTotals}
+              selectedYear={selectedYear}
             />
           )}
         </div>

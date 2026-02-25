@@ -3,7 +3,7 @@ import { ArrowUpDown, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { MONTHS, formatCurrency } from '../utils/formatters';
 import { getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyCardTotal, getMonthlyBalance } from '../services/calculations';
 
-const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals }) => {
+const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals, selectedYear }) => {
   const [month1, setMonth1] = useState(new Date().getMonth());
   const [month2, setMonth2] = useState(new Date().getMonth() > 0 ? new Date().getMonth() - 1 : 11);
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
@@ -11,7 +11,7 @@ const MonthComparison = ({ incomes, expenses, creditCardExpenses, invoiceTotals 
   const getMonthStats = (month) => {
     const income = getMonthlyIncome(incomes, month, hideExtraordinary);
     const fixedExpenses = getMonthlyFixedExpenses(expenses, month, hideExtraordinary);
-    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, month, undefined, hideExtraordinary);
+    const cardExpenses = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, month, selectedYear, hideExtraordinary);
     const totalExpenses = fixedExpenses + cardExpenses;
     const balance = getMonthlyBalance(income, fixedExpenses, cardExpenses);
 

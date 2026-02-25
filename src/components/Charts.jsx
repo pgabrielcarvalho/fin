@@ -47,17 +47,17 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
+export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false, selectedYear }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index, excludeExtraordinary),
-    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
+    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, selectedYear, excludeExtraordinary),
     saldo: getMonthlyBalance(
       getMonthlyIncome(incomes, index, excludeExtraordinary),
       getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
-      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, selectedYear, excludeExtraordinary)
     )
-  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary]);
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary, selectedYear]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -80,17 +80,17 @@ export const MonthlyComparisonChart = ({ incomes, expenses, creditCardExpenses, 
   );
 };
 
-export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false }) => {
+export const BalanceTrendChart = ({ incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary = false, selectedYear }) => {
   const data = useMemo(() => MONTHS.map((month, index) => ({
     name: month.substring(0, 3),
     receitas: getMonthlyIncome(incomes, index, excludeExtraordinary),
-    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary),
+    despesas: getMonthlyFixedExpenses(expenses, index, excludeExtraordinary) + getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, selectedYear, excludeExtraordinary),
     saldo: getMonthlyBalance(
       getMonthlyIncome(incomes, index, excludeExtraordinary),
       getMonthlyFixedExpenses(expenses, index, excludeExtraordinary),
-      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, undefined, excludeExtraordinary)
+      getMonthlyCardTotal(creditCardExpenses, invoiceTotals, index, selectedYear, excludeExtraordinary)
     )
-  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary]);
+  })), [incomes, expenses, creditCardExpenses, invoiceTotals, excludeExtraordinary, selectedYear]);
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -140,7 +140,7 @@ const DONUT_COLORS = [
   '#06b6d4', '#84cc16', '#e11d48', '#7c3aed'
 ];
 
-export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth, categories = [], excludeExtraordinary = false }) => {
+export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth, categories = [], excludeExtraordinary = false, selectedYear }) => {
   const categoryTotals = {};
 
   // Despesas fixas/eventuais
@@ -164,7 +164,7 @@ export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoic
   // Despesas do cartão (apenas ativas no mês selecionado)
   creditCardExpenses.forEach(expense => {
     if (excludeExtraordinary && expense.extraordinary) return;
-    if (!isCardExpenseActive(expense, selectedMonth)) return;
+    if (!isCardExpenseActive(expense, selectedMonth, selectedYear)) return;
     const value = expense.overrides?.[selectedMonth] !== undefined ? expense.overrides[selectedMonth] : expense.value;
     let catName = 'Sem Categoria';
     let catColor = '#94a3b8';
