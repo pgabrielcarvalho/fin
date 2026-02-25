@@ -610,51 +610,38 @@ const CreditCardView = ({
                     const currentValue = isOverridden ? item.overrides[selectedMonth] : item.value;
 
                     return (
-                      <div key={item.id} className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                      <div key={item.id} className="p-3 md:p-4 flex justify-between items-center bg-white dark:bg-slate-800">
+                        <div className="flex items-center gap-2 md:gap-3 flex-1">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                            <div className="text-[10px] md:text-xs mt-0.5 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                              {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
+                              {item.type === 'installment' && (
+                                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)}
+                                </span>
+                              )}
+                              {item.type === 'eventual' && (
+                                <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                  Eventual &middot; {MONTHS[item.month]}
+                                </span>
+                              )}
+                              <span className="text-slate-300 dark:text-slate-600">&middot;</span>
                               <CategoryPicker
                                 categoryId={item.categoryId}
                                 categories={categories}
                                 onChange={(catId) => handleCategoryChange(item, catId)}
                               />
-                            </div>
-                            <div className="text-xs mt-1 flex flex-wrap gap-1">
-                              {isFixed && (
-                                <>
-                                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">Fixa</span>
-                                  <span className="ml-2 text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                                    Base: R$
-                                    <EditableValue
-                                      value={item.value}
-                                      onSave={(val) => onSave('credit_expenses', { ...item, value: val })}
-                                      className="w-16 bg-transparent text-slate-400 dark:text-slate-500 outline-none font-mono"
-                                    />
-                                  </span>
-                                </>
-                              )}
-                              {item.type === 'installment' && (
-                                <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded font-medium">
-                                  {item.installments}x (última: {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)})
-                                </span>
-                              )}
-                              {item.type === 'eventual' && (
-                                <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
-                                  Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
-                                </span>
-                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
-                                className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                                className={`transition-colors ${
                                   item.extraordinary
-                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-                                    : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
+                                    ? 'text-purple-500 dark:text-purple-400'
+                                    : 'text-slate-300 dark:text-slate-600 hover:text-purple-400 dark:hover:text-purple-500'
                                 }`}
                                 title={item.extraordinary ? 'Remover marcação extraordinária' : 'Marcar como extraordinária'}
                               >
-                                <Sparkles size={12} />
+                                <Sparkles size={11} />
                               </button>
                             </div>
                           </div>
@@ -711,57 +698,42 @@ const CreditCardView = ({
                   <SortableItem key={item.id} id={item.id}>
                     {({ dragHandleProps }) => (
                       <div
-                        className="p-4 flex justify-between items-center bg-white dark:bg-slate-800"
+                        className="p-3 md:p-4 flex justify-between items-center bg-white dark:bg-slate-800"
                         style={category ? { borderLeft: `3px solid ${category.color}` } : undefined}
                       >
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-2 md:gap-3 flex-1">
                           <DragHandle {...dragHandleProps} />
 
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                            <div className="text-[10px] md:text-xs mt-0.5 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                              {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
+                              {item.type === 'installment' && (
+                                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)}
+                                </span>
+                              )}
+                              {item.type === 'eventual' && (
+                                <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                  Eventual &middot; {MONTHS[item.month]}
+                                </span>
+                              )}
+                              <span className="text-slate-300 dark:text-slate-600">&middot;</span>
                               <CategoryPicker
                                 categoryId={item.categoryId}
                                 categories={categories}
                                 onChange={(catId) => handleCategoryChange(item, catId)}
                               />
-                            </div>
-                            <div className="text-xs mt-1 flex flex-wrap gap-1">
-                              {isFixed && (
-                                <>
-                                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded font-medium">
-                                    Fixa
-                                  </span>
-                                  <span className="ml-2 text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                                    Base: R$
-                                    <EditableValue
-                                      value={item.value}
-                                      onSave={(val) => onSave('credit_expenses', { ...item, value: val })}
-                                      className="w-16 bg-transparent text-slate-400 dark:text-slate-500 outline-none font-mono"
-                                    />
-                                  </span>
-                                </>
-                              )}
-                              {item.type === 'installment' && (
-                                <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded font-medium">
-                                  {item.installments}x (última: {MONTHS[item.lastMonth]}/{String(new Date().getFullYear()).slice(-2)})
-                                </span>
-                              )}
-                              {item.type === 'eventual' && (
-                                <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
-                                  Eventual ({MONTHS[item.month]}/{String(new Date().getFullYear()).slice(-2)})
-                                </span>
-                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
-                                className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                                className={`transition-colors ${
                                   item.extraordinary
-                                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-                                    : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
+                                    ? 'text-purple-500 dark:text-purple-400'
+                                    : 'text-slate-300 dark:text-slate-600 hover:text-purple-400 dark:hover:text-purple-500'
                                 }`}
                                 title={item.extraordinary ? 'Remover marcação extraordinária' : 'Marcar como extraordinária'}
                               >
-                                <Sparkles size={12} />
+                                <Sparkles size={11} />
                               </button>
                             </div>
                           </div>

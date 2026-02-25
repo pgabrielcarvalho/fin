@@ -19,10 +19,17 @@ import {
   Unlock
 } from 'lucide-react';
 
+const SIDEBAR_WIDTH = 256; // w-64 = 16rem = 256px
+const EDGE_ZONE = 30; // pixels da borda esquerda para iniciar swipe
+const SWIPE_THRESHOLD = 0.3; // 30% do width para decidir abrir/fechar
+
 const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, onToggleDarkMode, pinEnabled, onTogglePin, obligations = [], selectedMonth }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0); // 0 = fechado, SIDEBAR_WIDTH = aberto
+  const [isSwiping, setIsSwiping] = useState(false);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
+  const swipeDirection = useRef(null); // 'horizontal' | 'vertical' | null
   const sidebarRef = useRef(null);
 
   const currentMonth = selectedMonth ?? new Date().getMonth();
@@ -44,52 +51,110 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
     setIsOpen(false);
   };
 
-  // Swipe gesture: abrir sidebar arrastando do canto esquerdo para a direita
+  // --- Swipe com transição visual em tempo real ---
   const handleTouchStart = useCallback((e) => {
     const touch = e.touches[0];
     touchStartX.current = touch.clientX;
     touchStartY.current = touch.clientY;
+    swipeDirection.current = null;
   }, []);
 
-  const handleTouchEnd = useCallback((e) => {
+  const handleTouchMove = useCallback((e) => {
     if (touchStartX.current === null) return;
 
-    const touch = e.changedTouches[0];
+    const touch = e.touches[0];
     const deltaX = touch.clientX - touchStartX.current;
-    const deltaY = Math.abs(touch.clientY - touchStartY.current);
-    const startX = touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
 
-    touchStartX.current = null;
-    touchStartY.current = null;
+    // Decidir direção no primeiro movimento significativo
+    if (swipeDirection.current === null) {
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        swipeDirection.current = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+      }
+      if (swipeDirection.current !== 'horizontal') return;
 
-    // Só detectar swipe horizontal (deltaX maior que deltaY)
-    if (deltaY > Math.abs(deltaX)) return;
-
-    // Abrir: swipe para direita a partir da borda esquerda (< 30px)
-    if (!isOpen && startX < 30 && deltaX > 60) {
-      setIsOpen(true);
-      return;
+      // Só inicia swipe se: abrindo da borda esquerda, ou fechando com sidebar aberta
+      const startX = touchStartX.current;
+      if (!isOpen && startX > EDGE_ZONE) {
+        swipeDirection.current = 'vertical'; // cancela
+        return;
+      }
     }
 
-    // Fechar: swipe para esquerda estando aberto
-    if (isOpen && deltaX < -60) {
-      setIsOpen(false);
+    if (swipeDirection.current !== 'horizontal') return;
+
+    setIsSwiping(true);
+
+    if (isOpen) {
+      // Fechando: offset vai de SIDEBAR_WIDTH até 0
+      const offset = Math.max(0, Math.min(SIDEBAR_WIDTH, SIDEBAR_WIDTH + deltaX));
+      setSwipeOffset(offset);
+    } else {
+      // Abrindo: offset vai de 0 até SIDEBAR_WIDTH
+      const offset = Math.max(0, Math.min(SIDEBAR_WIDTH, deltaX));
+      setSwipeOffset(offset);
     }
   }, [isOpen]);
 
+  const handleTouchEnd = useCallback(() => {
+    if (!isSwiping) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+
+    // Decidir se abre ou fecha baseado na posição
+    const shouldOpen = swipeOffset > SIDEBAR_WIDTH * SWIPE_THRESHOLD;
+    setIsOpen(shouldOpen);
+    setSwipeOffset(0);
+    setIsSwiping(false);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    swipeDirection.current = null;
+  }, [isSwiping, swipeOffset]);
+
   useEffect(() => {
-    // Só no mobile (< 768px)
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     if (!mediaQuery.matches) return;
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchEnd]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
+  // Calcular transform da sidebar no mobile
+  const getSidebarStyle = () => {
+    // Desktop: sem transform inline
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) return {};
+
+    if (isSwiping) {
+      // Durante swipe: seguir o dedo sem transition
+      const translateX = swipeOffset - SIDEBAR_WIDTH;
+      return {
+        transform: `translateX(${translateX}px)`,
+        transition: 'none',
+      };
+    }
+
+    // Sem swipe: usar CSS classes (isOpen controla via classes)
+    return {};
+  };
+
+  // Overlay opacity proporcional ao swipe
+  const getOverlayStyle = () => {
+    if (isSwiping) {
+      return { opacity: swipeOffset / SIDEBAR_WIDTH };
+    }
+    return {};
+  };
+
+  const showOverlay = isOpen || (isSwiping && swipeOffset > 0);
 
   return (
     <>
@@ -108,9 +173,10 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
       </div>
 
       {/* Mobile: Menu overlay */}
-      {isOpen && (
+      {showOverlay && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          className={`md:hidden fixed inset-0 bg-black z-40 ${isSwiping ? '' : 'transition-opacity duration-300'}`}
+          style={{ opacity: isSwiping ? swipeOffset / SIDEBAR_WIDTH * 0.5 : 0.5 }}
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -119,15 +185,18 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onExport, darkMode, o
       <div
         ref={sidebarRef}
         className={`
-          fixed md:sticky top-0 left-0 h-screen
+          fixed md:relative top-0 left-0 h-screen md:h-full
           bg-white dark:bg-slate-900
           text-slate-800 dark:text-white
           flex flex-col p-4 z-40
           border-r border-slate-200 dark:border-slate-800
-          transition-transform duration-300 ease-in-out
-          md:translate-x-0 md:w-64
-          ${isOpen ? 'translate-x-0 w-64 shadow-xl' : '-translate-x-full w-64'}
+          md:translate-x-0 md:w-64 md:flex-shrink-0
+          w-64
+          ${!isSwiping ? 'transition-transform duration-300 ease-in-out' : ''}
+          ${!isSwiping && isOpen ? 'translate-x-0 shadow-xl' : ''}
+          ${!isSwiping && !isOpen ? '-translate-x-full md:translate-x-0' : ''}
         `}
+        style={getSidebarStyle()}
       >
         <div className="mb-8 p-2 hidden md:block">
           <h1 className="text-xl font-bold flex items-center gap-2">
