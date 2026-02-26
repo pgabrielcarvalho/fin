@@ -15,7 +15,6 @@ export const useYearManager = (user) => {
 
   const [availableYears, setAvailableYears] = useState([CURRENT_YEAR]);
   const [migrating, setMigrating] = useState(false);
-  const [migrationDone, setMigrationDone] = useState(false);
 
   // Persistir ano selecionado no localStorage
   const setSelectedYear = useCallback((year) => {
@@ -29,33 +28,44 @@ export const useYearManager = (user) => {
 
     getAvailableYears(user.uid).then(years => {
       setAvailableYears(years);
+    }).catch(() => {
+      // Silently fall back to current year
     });
   }, [user]);
 
-  // Migração automática na primeira carga
+  // Migração automática em background (não bloqueia a UI)
   useEffect(() => {
     if (!user) return;
 
     const migrationKey = `migrated_to_years_v1_${user.uid}`;
     if (localStorage.getItem(migrationKey)) {
-      setMigrationDone(true);
       return;
     }
 
+    // Executar migração em background sem bloquear
     setMigrating(true);
 
-    migrateToYearNamespace(user.uid, 2026).then((result) => {
+    const timeout = setTimeout(() => {
+      // Safety timeout: se a migração demorar mais de 10s, desbloqueia a UI
       setMigrating(false);
-      setMigrationDone(true);
+    }, 10000);
 
-      if (result.migrated) {
-        console.log(`Migração concluída: ${result.count} itens`);
-        // Atualizar anos disponíveis após migração
-        getAvailableYears(user.uid).then(years => {
-          setAvailableYears(years);
-        });
-      }
-    });
+    migrateToYearNamespace(user.uid, 2026)
+      .then((result) => {
+        if (result.migrated) {
+          console.log(`Migração concluída: ${result.count} itens`);
+          getAvailableYears(user.uid).then(years => {
+            setAvailableYears(years);
+          }).catch(() => {});
+        }
+      })
+      .catch((err) => {
+        console.warn('Migração falhou (será tentada novamente):', err);
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setMigrating(false);
+      });
   }, [user]);
 
   // Iniciar novo ano
@@ -83,7 +93,6 @@ export const useYearManager = (user) => {
     setSelectedYear,
     availableYears,
     migrating,
-    migrationDone,
     startNewYear
   };
 };

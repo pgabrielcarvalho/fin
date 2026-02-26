@@ -52,7 +52,6 @@ const App = () => {
     setSelectedYear,
     availableYears,
     migrating,
-    migrationDone,
     startNewYear
   } = useYearManager(user);
 
@@ -278,17 +277,6 @@ const App = () => {
   // --- LOGIN SCREEN ---
   if (!user) {
     return <LoginScreen onLogin={handleLogin} loading={authLoading} />;
-  }
-
-  // --- MIGRAÇÃO ---
-  if (migrating) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 gap-2 flex-col">
-        <Loader2 className="animate-spin" size={32} />
-        <span className="text-lg">Migrando dados...</span>
-        <span className="text-sm">Isso acontece apenas uma vez</span>
-      </div>
-    );
   }
 
   // --- PIN LOCK ---

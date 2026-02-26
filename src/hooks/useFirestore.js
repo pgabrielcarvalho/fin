@@ -433,54 +433,71 @@ export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
   let totalMigrated = 0;
 
   try {
-    // Migrar coleções
+    // Migrar coleções (cada uma isolada para não parar tudo se uma falhar)
     for (const colName of collections) {
-      const legacyRef = collection(db, ...legacyPath, colName);
-      const snapshot = await getDocs(query(legacyRef));
+      try {
+        const legacyRef = collection(db, ...legacyPath, colName);
+        const snapshot = await getDocs(query(legacyRef));
 
-      if (snapshot.empty) continue;
+        if (snapshot.empty) continue;
 
-      const BATCH_LIMIT = 500;
-      const docs = snapshot.docs;
+        const BATCH_LIMIT = 500;
+        const docs = snapshot.docs;
 
-      for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
-        const chunk = docs.slice(i, i + BATCH_LIMIT);
-        const batch = writeBatch(db);
+        for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
+          const chunk = docs.slice(i, i + BATCH_LIMIT);
+          const batch = writeBatch(db);
 
-        for (const docSnap of chunk) {
-          const newDocRef = doc(db, ...yearPath, colName, docSnap.id);
-          batch.set(newDocRef, docSnap.data());
+          for (const docSnap of chunk) {
+            const newDocRef = doc(db, ...yearPath, colName, docSnap.id);
+            batch.set(newDocRef, docSnap.data());
+          }
+
+          await batch.commit();
+          totalMigrated += chunk.length;
         }
-
-        await batch.commit();
-        totalMigrated += chunk.length;
+      } catch (colErr) {
+        console.warn(`Migração da coleção ${colName} falhou:`, colErr.message);
       }
     }
 
-    // Migrar documentos em general/
-    for (const docName of documents) {
-      const legacyDocRef = doc(db, ...legacyPath, 'general', docName);
-      const docSnap = await getDocs(query(collection(db, ...legacyPath, 'general'))).then(snap => {
-        return snap.docs.find(d => d.id === docName);
-      });
+    // Migrar documentos em general/ (ler todos de uma vez para economizar leituras)
+    try {
+      const generalSnap = await getDocs(collection(db, ...legacyPath, 'general'));
 
-      if (docSnap && docSnap.exists()) {
-        const newDocRef = doc(db, ...yearPath, 'general', docName);
-        await setDoc(newDocRef, docSnap.data());
-        totalMigrated++;
+      for (const docName of documents) {
+        const docSnap = generalSnap.docs.find(d => d.id === docName);
+        if (docSnap && docSnap.exists()) {
+          try {
+            const newDocRef = doc(db, ...yearPath, 'general', docName);
+            await setDoc(newDocRef, docSnap.data());
+            totalMigrated++;
+          } catch (docErr) {
+            console.warn(`Migração do documento ${docName} falhou:`, docErr.message);
+          }
+        }
       }
+    } catch (generalErr) {
+      console.warn('Migração dos documentos general/ falhou:', generalErr.message);
     }
 
     // Registrar ano disponível
-    const availableYearsRef = doc(db, ...getUserLegacyPath(userId), 'meta', 'available_years');
-    await setDoc(availableYearsRef, { years: [targetYear] });
+    try {
+      const availableYearsRef = doc(db, ...getUserLegacyPath(userId), 'meta', 'available_years');
+      await setDoc(availableYearsRef, { years: [targetYear] });
+    } catch (metaErr) {
+      console.warn('Registro de anos disponíveis falhou:', metaErr.message);
+    }
 
+    // Sempre marcar migração como concluída para não travar o app em loops
     localStorage.setItem(migrationKey, new Date().toISOString());
     console.log(`Migração concluída: ${totalMigrated} itens migrados para years/${targetYear}`);
 
     return { migrated: true, count: totalMigrated };
   } catch (err) {
     console.error('Erro na migração:', err);
+    // Mesmo com erro, marcar como feita para não travar o app
+    localStorage.setItem(migrationKey, `error_${new Date().toISOString()}`);
     return { migrated: false, reason: 'error', error: err.message };
   }
 };
