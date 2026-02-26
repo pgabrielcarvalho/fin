@@ -34,7 +34,7 @@ const CreditCardView = ({
     value: '',
     type: 'fixed', // 'fixed', 'installment' ou 'eventual'
     installments: 2,
-    lastMonth: selectedMonth,
+    startMonth: selectedMonth,
     month: selectedMonth,
     categoryId: '',
     extraordinary: false
@@ -60,15 +60,10 @@ const CreditCardView = ({
 
   const plannedCardTotal = useMemo(
     () => activeItems.reduce((acc, item) => {
-      // Se for despesa fixa, verifica se há override para o mês selecionado
-      if (!item.type || item.type === 'fixed') {
-        const monthValue = item.overrides?.[selectedMonth] !== undefined
-          ? item.overrides[selectedMonth]
-          : item.value;
-        return acc + monthValue;
-      }
-      // Parceladas e eventuais usam o valor direto
-      return acc + item.value;
+      const monthValue = item.overrides?.[selectedMonth] !== undefined
+        ? item.overrides[selectedMonth]
+        : item.value;
+      return acc + monthValue;
     }, 0),
     [activeItems, selectedMonth]
   );
@@ -142,13 +137,23 @@ const CreditCardView = ({
   }, [activeItems, groupByCategory, categories, selectedMonth]);
 
   const handleAdd = async () => {
+    let lastMonth = null;
+    let lastYear = null;
+    if (newCardExpense.type === 'installment') {
+      const startMonth = parseInt(newCardExpense.startMonth);
+      const installments = parseInt(newCardExpense.installments);
+      const totalMonths = startMonth + installments - 1;
+      lastMonth = totalMonths % 12;
+      lastYear = currentYear + Math.floor(totalMonths / 12);
+    }
+
     const expenseData = {
       name: newCardExpense.name,
       value: parseFloat(newCardExpense.value),
       type: newCardExpense.type,
       installments: newCardExpense.type === 'installment' ? parseInt(newCardExpense.installments) : null,
-      lastMonth: newCardExpense.type === 'installment' ? parseInt(newCardExpense.lastMonth) : null,
-      lastYear: newCardExpense.type === 'installment' ? currentYear : null,
+      lastMonth: lastMonth,
+      lastYear: lastYear,
       month: newCardExpense.type === 'eventual' ? parseInt(newCardExpense.month) : null
     };
 
@@ -185,7 +190,7 @@ const CreditCardView = ({
         value: '',
         type: 'fixed',
         installments: 2,
-        lastMonth: selectedMonth,
+        startMonth: selectedMonth,
         month: selectedMonth,
         categoryId: '',
         extraordinary: false
@@ -248,6 +253,16 @@ const CreditCardView = ({
       return cat ? cat.name : null;
     }
     return item.category || null;
+  };
+
+  // Helper: calcula parcela atual de uma despesa parcelada
+  const getCurrentParcel = (item) => {
+    if (item.type !== 'installment') return null;
+    const lastYear = item.lastYear || currentYear;
+    const lastMonth = item.lastMonth;
+    // Meses restantes = distância do mês atual até o último mês
+    const monthsRemaining = (lastYear - currentYear) * 12 + (lastMonth - selectedMonth);
+    return item.installments - monthsRemaining;
   };
 
   const handleCopyFromMonth = async (sourceMonth) => {
@@ -479,11 +494,11 @@ const CreditCardView = ({
                 </select>
                 <select
                   className="w-full sm:w-36 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200 text-sm"
-                  value={newCardExpense.lastMonth}
-                  onChange={e => setNewCardExpense({ ...newCardExpense, lastMonth: parseInt(e.target.value) })}
+                  value={newCardExpense.startMonth}
+                  onChange={e => setNewCardExpense({ ...newCardExpense, startMonth: parseInt(e.target.value) })}
                 >
                   {MONTHS.map((m, i) => (
-                    <option key={i} value={i}>Última: {m}/{String(currentYear).slice(-2)}</option>
+                    <option key={i} value={i}>Início: {m}/{String(currentYear).slice(-2)}</option>
                   ))}
                 </select>
               </>
@@ -537,7 +552,14 @@ const CreditCardView = ({
               {newCardExpense.type === 'fixed'
                 ? "Fixas aparecem todos os meses"
                 : newCardExpense.type === 'installment'
-                ? "Parceladas aparecem até a última parcela"
+                ? (() => {
+                    const sm = parseInt(newCardExpense.startMonth);
+                    const inst = parseInt(newCardExpense.installments);
+                    const total = sm + inst - 1;
+                    const lm = total % 12;
+                    const ly = currentYear + Math.floor(total / 12);
+                    return `Última parcela: ${MONTHS[lm]}/${String(ly).slice(-2)}`;
+                  })()
                 : "Eventuais aparecem apenas no mês selecionado"}
             </div>
           </div>
@@ -605,8 +627,11 @@ const CreditCardView = ({
                 <div className="divide-y dark:divide-slate-700">
                   {group.items.map((item) => {
                     const isFixed = !item.type || item.type === 'fixed';
-                    const isOverridden = isFixed && item.overrides && item.overrides[selectedMonth] !== undefined;
+                    const isInstallment = item.type === 'installment';
+                    const isEditable = isFixed || isInstallment;
+                    const isOverridden = isEditable && item.overrides && item.overrides[selectedMonth] !== undefined;
                     const currentValue = isOverridden ? item.overrides[selectedMonth] : item.value;
+                    const parcel = isInstallment ? getCurrentParcel(item) : null;
 
                     return (
                       <div key={item.id} className="p-3 md:p-4 flex justify-between items-center bg-white dark:bg-slate-800">
@@ -615,9 +640,9 @@ const CreditCardView = ({
                             <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
                             <div className="text-[10px] md:text-xs mt-0.5 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                               {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
-                              {item.type === 'installment' && (
+                              {isInstallment && (
                                 <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
-                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(currentYear).slice(-2)}
+                                  {parcel}/{item.installments}x &middot; Total {formatCurrency(item.value * item.installments)}
                                 </span>
                               )}
                               {item.type === 'eventual' && (
@@ -645,7 +670,7 @@ const CreditCardView = ({
                             </div>
                           </div>
 
-                          {isFixed ? (
+                          {isEditable ? (
                             <div className="flex items-center gap-2">
                               <div className={`flex items-center gap-2 p-1 rounded border ${
                                 isOverridden ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'border-transparent'
@@ -687,11 +712,14 @@ const CreditCardView = ({
             <SortableList items={activeItems} onReorder={handleDragReorder}>
               {activeItems.map((item) => {
                 const isFixed = !item.type || item.type === 'fixed';
-                const isOverridden = isFixed && item.overrides && item.overrides[selectedMonth] !== undefined;
+                const isInstallment = item.type === 'installment';
+                const isEditable = isFixed || isInstallment;
+                const isOverridden = isEditable && item.overrides && item.overrides[selectedMonth] !== undefined;
                 const currentValue = isOverridden
                   ? item.overrides[selectedMonth]
                   : item.value;
                 const category = categories.find(c => c.id === item.categoryId);
+                const parcel = isInstallment ? getCurrentParcel(item) : null;
 
                 return (
                   <SortableItem key={item.id} id={item.id}>
@@ -707,9 +735,9 @@ const CreditCardView = ({
                             <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
                             <div className="text-[10px] md:text-xs mt-0.5 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                               {isFixed && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Fixa</span>}
-                              {item.type === 'installment' && (
+                              {isInstallment && (
                                 <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
-                                  {item.installments}x &middot; até {MONTHS[item.lastMonth]}/{String(currentYear).slice(-2)}
+                                  {parcel}/{item.installments}x &middot; Total {formatCurrency(item.value * item.installments)}
                                 </span>
                               )}
                               {item.type === 'eventual' && (
@@ -737,7 +765,7 @@ const CreditCardView = ({
                             </div>
                           </div>
 
-                          {isFixed ? (
+                          {isEditable ? (
                             <div className="flex items-center gap-2">
                               <div
                                 className={`flex items-center gap-2 p-1 rounded border ${

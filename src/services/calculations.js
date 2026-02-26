@@ -63,7 +63,10 @@ export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthInde
     const extraItems = creditCardExpenses.filter(item =>
       item.extraordinary && isCardExpenseActive(item, monthIndex, currentYear)
     );
-    const extraTotal = extraItems.reduce((acc, item) => acc + item.value, 0);
+    const extraTotal = extraItems.reduce((acc, item) => {
+      const value = item.overrides?.[monthIndex] !== undefined ? item.overrides[monthIndex] : item.value;
+      return acc + value;
+    }, 0);
     return Math.max(0, manualTotal - extraTotal);
   }
 
@@ -73,7 +76,12 @@ export const getMonthlyCardTotal = (creditCardExpenses, invoiceTotals, monthInde
     (!excludeExtraordinary || !item.extraordinary)
   );
 
-  return activeItems.reduce((acc, item) => acc + item.value, 0);
+  return activeItems.reduce((acc, item) => {
+    const value = item.overrides?.[monthIndex] !== undefined
+      ? item.overrides[monthIndex]
+      : item.value;
+    return acc + value;
+  }, 0);
 };
 
 /**
