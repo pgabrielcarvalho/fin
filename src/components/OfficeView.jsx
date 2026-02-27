@@ -94,15 +94,13 @@ const OfficeView = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-            <Briefcase className="text-purple-500" size={24} />
-            Checklist
-          </h2>
-        </div>
-        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <Briefcase className="text-purple-500" size={24} />
+          Checklist
+        </h2>
       </div>
+      <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
 
       {/* Card de Progresso */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">

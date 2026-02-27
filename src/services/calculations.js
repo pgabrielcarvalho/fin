@@ -252,22 +252,19 @@ export const isCardExpenseActive = (expense, currentMonth, currentYear = new Dat
     return expense.month === currentMonth;
   }
 
-  // Despesas parceladas: verifica se ainda não passou da última parcela
+  // Despesas parceladas: verifica se está dentro do intervalo de parcelas
   if (expense.type === 'installment') {
     const lastYear = expense.lastYear || currentYear;
+    const lastMonth = expense.lastMonth;
+    const installments = expense.installments || 1;
 
-    // Se o ano da última parcela for maior, ainda está ativa
-    if (lastYear > currentYear) {
-      return true;
-    }
+    // Calcular primeiro mês retroativamente: startMonth = lastMonth - installments + 1
+    const totalLastMonths = lastYear * 12 + lastMonth;
+    const totalStartMonths = totalLastMonths - installments + 1;
+    const totalCurrentMonths = currentYear * 12 + currentMonth;
 
-    // Se for o mesmo ano, verifica o mês
-    if (lastYear === currentYear && expense.lastMonth >= currentMonth) {
-      return true;
-    }
-
-    // Já passou da última parcela
-    return false;
+    // Ativa se mês atual está entre primeiro e último mês (inclusive)
+    return totalCurrentMonths >= totalStartMonths && totalCurrentMonths <= totalLastMonths;
   }
 
   return false;

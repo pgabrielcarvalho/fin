@@ -68,24 +68,22 @@ const Dashboard = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Dashboard</h2>
-          <button
-            onClick={() => setHideExtraordinary(!hideExtraordinary)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              hideExtraordinary
-                ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
-                : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
-            }`}
-            title="Excluir despesas extraordinárias dos cálculos"
-          >
-            <Sparkles size={14} />
-            <span className="hidden sm:inline">Sem extras</span>
-          </button>
-        </div>
-        <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Dashboard</h2>
+        <button
+          onClick={() => setHideExtraordinary(!hideExtraordinary)}
+          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            hideExtraordinary
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+              : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500'
+          }`}
+          title="Excluir despesas extraordinárias dos cálculos"
+        >
+          <Sparkles size={14} />
+          <span className="hidden sm:inline">Sem extras</span>
+        </button>
       </div>
+      <MonthTabs selectedMonth={selectedMonth} onChange={onMonthChange} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card de Receita */}
