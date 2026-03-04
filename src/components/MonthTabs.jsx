@@ -3,7 +3,7 @@ import { MONTHS } from '../utils/formatters';
 
 const MonthTabs = ({ selectedMonth, onChange }) => {
   return (
-    <div className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-900 pt-2 pb-2 -mx-4 px-4 md:-mx-8 md:px-8 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+    <div className="sticky -top-16 z-20 bg-slate-50 dark:bg-slate-900 pt-[4.5rem] pb-2 -mx-4 px-4 md:-mx-8 md:px-8 border-b border-slate-200 dark:border-slate-700 shadow-sm">
       <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
         {MONTHS.map((month, index) => (
           <button
