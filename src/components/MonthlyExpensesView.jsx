@@ -303,33 +303,31 @@ const MonthlyExpensesView = ({
         </div>
 
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-          <div
-            className="flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-          >
-            <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
-            <EditableValue
-              value={currentValue}
-              onSave={(val) => updateOverride(expense, val)}
-              className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
-                isOverridden
-                  ? 'text-yellow-700 dark:text-yellow-400'
-                  : isPaid
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-slate-700 dark:text-slate-300'
-              }`}
-            />
-          </div>
-          {isOverridden && (
+          <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
+          <EditableValue
+            value={currentValue}
+            onSave={(val) => updateOverride(expense, val)}
+            className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
+              isOverridden
+                ? 'text-yellow-700 dark:text-yellow-400'
+                : isPaid
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-700 dark:text-slate-300'
+            }`}
+          />
+          {isOverridden ? (
             <button
               onClick={() => resetOverride(expense)}
               title="Voltar ao valor original"
-              className="flex-shrink-0"
+              className="flex-shrink-0 w-4 md:w-[18px]"
             >
               <RotateCcw
                 size={12}
                 className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
               />
             </button>
+          ) : (
+            <span className="w-4 md:w-[18px]" />
           )}
           <button onClick={() => handleDelete(expense.id)} className="flex-shrink-0">
             <Trash2 size={14} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />

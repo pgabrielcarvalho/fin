@@ -7,7 +7,6 @@ import { useCollection, useDocument, useLazyCollection, useLazyDocument, useFire
 import { useYearManager } from './hooks/useYearManager';
 import { useToast } from './contexts/ToastContext';
 import { useTheme } from './contexts/ThemeContext';
-import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import { usePinLock } from './hooks/usePinLock';
 
 // Componentes
@@ -243,21 +242,6 @@ const App = () => {
       toast.error(`Erro ao criar ano ${nextYear}: ${result.error || 'Erro desconhecido'}`);
     }
   };
-
-  // Atalhos de teclado
-  useKeyboardShortcuts([
-    { keys: APP_SHORTCUTS.DASHBOARD, action: () => setActiveTab('dashboard') },
-    { keys: APP_SHORTCUTS.INCOMES, action: () => setActiveTab('incomes') },
-    { keys: APP_SHORTCUTS.EXPENSES, action: () => setActiveTab('monthly') },
-    { keys: APP_SHORTCUTS.CREDIT_CARD, action: () => setActiveTab('credit') },
-    { keys: APP_SHORTCUTS.YEARLY, action: () => setActiveTab('yearly') },
-    { keys: APP_SHORTCUTS.VACATION, action: () => setActiveTab('vacation') },
-    { keys: APP_SHORTCUTS.OFFICE, action: () => setActiveTab('office') },
-    { keys: APP_SHORTCUTS.EXPORT, action: () => setShowExportMenu(true) },
-    { keys: APP_SHORTCUTS.DARK_MODE, action: toggleDarkMode },
-    { keys: APP_SHORTCUTS.NEXT_MONTH, action: () => setSelectedMonth(m => (m + 1) % 12) },
-    { keys: APP_SHORTCUTS.PREV_MONTH, action: () => setSelectedMonth(m => (m - 1 + 12) % 12) }
-  ]);
 
   // --- DADOS CONSOLIDADOS ---
   const vacationFund = {

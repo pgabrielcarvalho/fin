@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown, Keyboard, ChevronDown, ChevronUp, FolderPlus } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, FolderPlus, CheckCircle2, Circle } from 'lucide-react';
 import MonthlyNotes from './MonthlyNotes';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
-import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import EditableValue from './EditableValue';
 import { formatCurrency } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { getVacationTotals } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 import { useDragReorder } from '../hooks/useDragReorder';
 
@@ -55,10 +53,13 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
   const [newSubItems, setNewSubItems] = useState({}); // { [projectId]: { name, value } }
   const [addMode, setAddMode] = useState('expense'); // 'expense' | 'project'
   const [expandedProjects, setExpandedProjects] = useState(new Set());
-  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const handleUpdateItem = async (collection, item, updates) => {
     await onSave(collection, { ...item, ...updates });
+  };
+
+  const togglePaid = (collection, item) => {
+    handleUpdateItem(collection, item, { paid: !item.paid });
   };
 
   // Hooks de reordenação para entradas
@@ -103,10 +104,21 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
     return items.reduce((acc, item) => acc + (item.value || 0), 0);
   };
 
-  const totals = useMemo(
-    () => getVacationTotals({ incomes: sortedIncomes, expenses: sortedExpenses }),
-    [sortedIncomes, sortedExpenses]
-  );
+  // Totais com breakdown pago/pendente
+  const totals = useMemo(() => {
+    const incomeTotal = sortedIncomes.reduce((acc, item) => acc + item.value, 0);
+    const incomePaid = sortedIncomes.filter(i => i.paid).reduce((acc, i) => acc + i.value, 0);
+    const incomePending = incomeTotal - incomePaid;
+
+    const expenseItems = sortedExpenses.filter(i => i.type !== 'project');
+    const expenseTotal = expenseItems.reduce((acc, item) => acc + (item.value || 0), 0);
+    const expensePaid = expenseItems.filter(i => i.paid).reduce((acc, i) => acc + (i.value || 0), 0);
+    const expensePending = expenseTotal - expensePaid;
+
+    const balance = incomeTotal - expenseTotal;
+
+    return { incomeTotal, incomePaid, incomePending, expenseTotal, expensePaid, expensePending, balance };
+  }, [sortedIncomes, sortedExpenses]);
 
   const toggleProject = (id) => {
     setExpandedProjects(prev => {
@@ -247,6 +259,27 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
     }));
   };
 
+  // Checkbox de pago/pendente
+  const PaidCheckbox = ({ paid, onToggle, variant = 'green' }) => {
+    const activeColor = variant === 'green'
+      ? 'text-emerald-500 dark:text-emerald-400'
+      : 'text-red-500 dark:text-red-400';
+
+    return (
+      <button
+        onClick={onToggle}
+        className={`flex-shrink-0 transition-colors ${
+          paid
+            ? activeColor
+            : 'text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-500'
+        }`}
+        title={paid ? 'Marcar como pendente' : 'Marcar como pago'}
+      >
+        {paid ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+      </button>
+    );
+  };
+
   // Renderizar um projeto (colapsado ou expandido)
   const renderProject = (project, dragHandleProps) => {
     const isExpanded = expandedProjects.has(project.id);
@@ -286,17 +319,24 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
             <div className="pl-4 border-l-2 border-red-300 dark:border-red-700 ml-4 py-1">
               {subItems.map((sub) => (
                 <div key={sub.id} className="flex items-center gap-2 py-1 px-2 text-sm">
-                  <div className="flex-1 min-w-0">
+                  <PaidCheckbox
+                    paid={sub.paid}
+                    onToggle={() => togglePaid('vacation_expenses', sub)}
+                    variant="red"
+                  />
+                  <div className={`flex-1 min-w-0 ${sub.paid ? 'opacity-50' : ''}`}>
                     <EditableName
                       value={sub.name}
                       onSave={(name) => handleUpdateItem('vacation_expenses', sub, { name })}
-                      className="text-slate-700 dark:text-slate-300 truncate"
+                      className={`text-slate-700 dark:text-slate-300 truncate ${sub.paid ? 'line-through' : ''}`}
                     />
                   </div>
                   <EditableValue
                     value={sub.value}
                     onSave={(value) => handleUpdateItem('vacation_expenses', sub, { value })}
-                    className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+                    className={`w-24 text-right text-sm font-mono font-bold bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors ${
+                      sub.paid ? 'text-red-400 dark:text-red-500 line-through' : 'text-red-600 dark:text-red-400'
+                    }`}
                   />
                   <button onClick={() => handleDelete('vacation_expenses', sub.id)}>
                     <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
@@ -339,17 +379,26 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
     <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <DragHandle {...dragHandleProps} />
-        <EditableName
-          value={item.name}
-          onSave={(name) => handleUpdateItem('vacation_expenses', item, { name })}
-          className="text-slate-800 dark:text-slate-200 truncate"
+        <PaidCheckbox
+          paid={item.paid}
+          onToggle={() => togglePaid('vacation_expenses', item)}
+          variant="red"
         />
+        <div className={`flex-1 min-w-0 ${item.paid ? 'opacity-50' : ''}`}>
+          <EditableName
+            value={item.name}
+            onSave={(name) => handleUpdateItem('vacation_expenses', item, { name })}
+            className={`text-slate-800 dark:text-slate-200 truncate ${item.paid ? 'line-through' : ''}`}
+          />
+        </div>
       </div>
-      <span className="flex gap-2 font-mono font-bold text-red-600 dark:text-red-400 items-center flex-shrink-0">
+      <span className="flex gap-2 font-mono font-bold items-center flex-shrink-0">
         <EditableValue
           value={item.value}
           onSave={(value) => handleUpdateItem('vacation_expenses', item, { value })}
-          className="w-24 text-right text-sm font-mono font-bold text-red-600 dark:text-red-400 bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+          className={`w-24 text-right text-sm font-mono font-bold bg-transparent border-b border-transparent hover:border-red-300 dark:hover:border-red-600 focus:border-red-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors ${
+            item.paid ? 'text-red-400 dark:text-red-500 line-through' : 'text-red-600 dark:text-red-400'
+          }`}
         />
         <button onClick={() => handleDelete('vacation_expenses', item.id)}>
           <Trash2 size={14} className="text-slate-300 hover:text-red-500" />
@@ -360,58 +409,83 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Fundo de Férias</h2>
-        {/* Botão discreto para atalhos - apenas desktop */}
-        <button
-          onClick={() => setShowShortcuts(true)}
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-          title="Ver atalhos de teclado"
-        >
-          <Keyboard size={14} />
-          <span>Atalhos</span>
-        </button>
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {/* Card de Entradas */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 p-3 md:p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-600 dark:text-emerald-400">
-            <TrendingUp size={60} />
+            <TrendingUp size={48} />
           </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs mb-1 font-medium">
             Total de Entradas
           </div>
-          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="text-lg md:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(totals.incomeTotal)}
+          </div>
+          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] md:text-xs">
+            <span className="text-emerald-700 dark:text-emerald-300">
+              Recebido: {formatCurrency(totals.incomePaid)}
+            </span>
+            <span className="text-slate-400 dark:text-slate-500">
+              Previsto: {formatCurrency(totals.incomePending)}
+            </span>
           </div>
         </div>
 
         {/* Card de Saídas */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 p-3 md:p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-10 text-red-500 dark:text-red-400">
-            <TrendingDown size={60} />
+            <TrendingDown size={48} />
           </div>
-          <div className="text-slate-500 dark:text-slate-400 text-xs mb-1 font-medium">
+          <div className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs mb-1 font-medium">
             Total de Saídas
           </div>
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+          <div className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">
             {formatCurrency(totals.expenseTotal)}
+          </div>
+          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] md:text-xs">
+            <span className="text-red-700 dark:text-red-300">
+              Pago: {formatCurrency(totals.expensePaid)}
+            </span>
+            <span className="text-slate-400 dark:text-slate-500">
+              Estimado: {formatCurrency(totals.expensePending)}
+            </span>
           </div>
         </div>
 
-        {/* Card de Saldo */}
-        <div className={`p-4 rounded-xl shadow-sm border relative overflow-hidden ${
+        {/* Card de Saldo Real (baseado no que foi efetivamente pago/recebido) */}
+        <div className="bg-white dark:bg-slate-800 p-3 md:p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs mb-1 font-medium">
+            Saldo Atual
+          </div>
+          <div className={`text-lg md:text-2xl font-bold ${
+            totals.incomePaid - totals.expensePaid >= 0
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : 'text-red-600 dark:text-red-400'
+          }`}>
+            {formatCurrency(totals.incomePaid - totals.expensePaid)}
+          </div>
+          <div className="mt-1.5 text-[10px] md:text-xs text-slate-400 dark:text-slate-500">
+            Recebido - Pago
+          </div>
+        </div>
+
+        {/* Card de Saldo Projetado */}
+        <div className={`p-3 md:p-4 rounded-xl shadow-sm border relative overflow-hidden ${
           totals.balance >= 0
             ? 'bg-blue-600 dark:bg-blue-700 text-white'
             : 'bg-red-600 dark:bg-red-700 text-white'
         }`}>
-          <div className="text-white/80 text-xs mb-1 font-medium">Saldo Disponível</div>
-          <div className="text-2xl font-bold">
+          <div className="text-white/80 text-[10px] md:text-xs mb-1 font-medium">Saldo Projetado</div>
+          <div className="text-lg md:text-2xl font-bold">
             {formatCurrency(totals.balance)}
+          </div>
+          <div className="mt-1.5 text-[10px] md:text-xs text-white/60">
+            Total entradas - saídas
           </div>
         </div>
       </div>
@@ -430,17 +504,26 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
                     <div className="flex justify-between text-sm items-center bg-white dark:bg-slate-800 py-1">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <DragHandle {...dragHandleProps} />
-                        <EditableName
-                          value={item.name}
-                          onSave={(name) => handleUpdateItem('vacation_incomes', item, { name })}
-                          className="text-slate-800 dark:text-slate-200 truncate"
+                        <PaidCheckbox
+                          paid={item.paid}
+                          onToggle={() => togglePaid('vacation_incomes', item)}
+                          variant="green"
                         />
+                        <div className={`flex-1 min-w-0 ${item.paid ? 'opacity-50' : ''}`}>
+                          <EditableName
+                            value={item.name}
+                            onSave={(name) => handleUpdateItem('vacation_incomes', item, { name })}
+                            className={`text-slate-800 dark:text-slate-200 truncate ${item.paid ? 'line-through' : ''}`}
+                          />
+                        </div>
                       </div>
-                      <span className="flex gap-2 font-mono font-bold text-emerald-600 dark:text-emerald-400 items-center flex-shrink-0">
+                      <span className="flex gap-2 font-mono font-bold items-center flex-shrink-0">
                         <EditableValue
                           value={item.value}
                           onSave={(value) => handleUpdateItem('vacation_incomes', item, { value })}
-                          className="w-24 text-right text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-transparent border-b border-transparent hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors"
+                          className={`w-24 text-right text-sm font-mono font-bold bg-transparent border-b border-transparent hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-700 outline-none rounded px-1 py-0.5 transition-colors ${
+                            item.paid ? 'text-emerald-400 dark:text-emerald-500 line-through' : 'text-emerald-600 dark:text-emerald-400'
+                          }`}
                         />
                         <button onClick={() => handleDelete('vacation_incomes', item.id)}>
                           <Trash2 size={14} className="text-slate-300 hover:text-red-500" />

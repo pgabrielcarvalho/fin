@@ -679,22 +679,19 @@ const CreditCardView = ({
 
                           {isEditable ? (
                             <div className="flex items-center gap-2">
-                              <div className={`flex items-center gap-2 p-1 rounded border ${
-                                'border-transparent'
-                              }`}>
-                                <span className="text-xs text-slate-400 dark:text-slate-500">{MONTHS[selectedMonth]}:</span>
-                                <EditableValue
-                                  value={currentValue}
-                                  onSave={(val) => updateOverride(item, val)}
-                                  className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
-                                    isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
-                                  }`}
-                                />
-                              </div>
-                              {isOverridden && (
-                                <button onClick={() => resetOverride(item)} title="Restaurar valor original">
+                              <EditableValue
+                                value={currentValue}
+                                onSave={(val) => updateOverride(item, val)}
+                                className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                                  isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
+                                }`}
+                              />
+                              {isOverridden ? (
+                                <button onClick={() => resetOverride(item)} title="Restaurar valor original" className="flex-shrink-0 w-[18px]">
                                   <RotateCcw size={16} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
                                 </button>
+                              ) : (
+                                <span className="w-[18px]" />
                               )}
                             </div>
                           ) : (
@@ -774,28 +771,19 @@ const CreditCardView = ({
 
                           {isEditable ? (
                             <div className="flex items-center gap-2">
-                              <div
-                                className={`flex items-center gap-2 p-1 rounded border ${
-                                  isOverridden
-                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                                    : 'border-transparent'
+                              <EditableValue
+                                value={currentValue}
+                                onSave={(val) => updateOverride(item, val)}
+                                className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
+                                  isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
                                 }`}
-                              >
-                                <span className="text-xs text-slate-400 dark:text-slate-500">
-                                  {MONTHS[selectedMonth]}:
-                                </span>
-                                <EditableValue
-                                  value={currentValue}
-                                  onSave={(val) => updateOverride(item, val)}
-                                  className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
-                                    isOverridden ? 'text-yellow-700 dark:text-yellow-400' : 'text-indigo-700 dark:text-indigo-400'
-                                  }`}
-                                />
-                              </div>
-                              {isOverridden && (
-                                <button onClick={() => resetOverride(item)} title="Restaurar valor original">
+                              />
+                              {isOverridden ? (
+                                <button onClick={() => resetOverride(item)} title="Restaurar valor original" className="flex-shrink-0 w-[18px]">
                                   <RotateCcw size={16} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400" />
                                 </button>
+                              ) : (
+                                <span className="w-[18px]" />
                               )}
                             </div>
                           ) : (
