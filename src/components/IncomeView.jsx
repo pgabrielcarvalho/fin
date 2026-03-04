@@ -202,7 +202,7 @@ const IncomeView = ({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in overflow-x-hidden">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Gestão de Receitas</h2>
       </div>
@@ -381,12 +381,12 @@ const IncomeView = ({
                   return (
                     <SortableItem key={item.id} id={item.id}>
                       {({ dragHandleProps }) => (
-                        <div className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
-                          <div className="flex items-center gap-2">
+                        <div className="p-2.5 md:p-4 flex justify-between items-center gap-1.5 md:gap-4 bg-white dark:bg-slate-800">
+                          <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                             <DragHandle {...dragHandleProps} />
-                            <div>
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                                <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
                                   className={`px-1.5 py-0.5 rounded-md transition-colors ${
@@ -409,22 +409,18 @@ const IncomeView = ({
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
                             <div
-                              className={`flex items-center gap-2 p-1 rounded border ${
-                                isOverridden
-                                  ? 'bg-yellow-50 border-yellow-300'
-                                  : 'border-transparent'
-                              }`}
+                              className="flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border border-transparent"
                             >
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">
                                 {MONTHS[selectedMonth]}:
                               </span>
                               <EditableValue
                                 value={currentValue}
                                 onSave={(val) => updateOverride(item, val)}
-                                className={`w-24 bg-transparent text-right font-mono font-bold outline-none ${
-                                  isOverridden ? 'text-yellow-700' : 'text-emerald-600'
+                                className={`w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none ${
+                                  isOverridden ? 'text-yellow-600 dark:text-yellow-400' : 'text-emerald-600 dark:text-emerald-400'
                                 }`}
                               />
                             </div>
@@ -432,17 +428,18 @@ const IncomeView = ({
                               <button
                                 onClick={() => resetOverride(item)}
                                 title="Restaurar valor original"
+                                className="flex-shrink-0"
                               >
                                 <RotateCcw
-                                  size={16}
-                                  className="text-slate-400 hover:text-emerald-600"
+                                  size={12}
+                                  className="md:w-4 md:h-4 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                                 />
                               </button>
                             )}
-                            <button onClick={() => handleDelete(item.id)}>
+                            <button onClick={() => handleDelete(item.id)} className="flex-shrink-0">
                               <Trash2
-                                size={18}
-                                className="text-slate-300 hover:text-red-500"
+                                size={14}
+                                className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500"
                               />
                             </button>
                           </div>
@@ -470,13 +467,13 @@ const IncomeView = ({
                   {sortedVariableIncomes.map((item) => (
                     <SortableItem key={item.id} id={item.id}>
                       {({ dragHandleProps }) => (
-                        <div className="p-4 flex justify-between items-center bg-white dark:bg-slate-800">
-                          <div className="flex items-center gap-2">
+                        <div className="p-2.5 md:p-4 flex justify-between items-center gap-1.5 md:gap-4 bg-white dark:bg-slate-800">
+                          <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                             <DragHandle {...dragHandleProps} />
-                            <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
+                            <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleExtraordinary(item); }}
-                              className={`px-1.5 py-0.5 rounded-md transition-colors ${
+                              className={`flex-shrink-0 px-1.5 py-0.5 rounded-md transition-colors ${
                                 item.extraordinary
                                   ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
                                   : 'text-slate-300 dark:text-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-400 dark:hover:text-purple-500'
@@ -491,14 +488,14 @@ const IncomeView = ({
                               onChange={(catId) => handleCategoryChange(item, catId)}
                             />
                           </div>
-                          <div className="flex gap-4 items-center">
-                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                          <div className="flex gap-2 md:gap-4 items-center flex-shrink-0">
+                            <span className="font-mono font-bold text-xs md:text-base text-blue-600 dark:text-blue-400">
                               {formatCurrency(item.value)}
                             </span>
-                            <button onClick={() => handleDelete(item.id)}>
+                            <button onClick={() => handleDelete(item.id)} className="flex-shrink-0">
                               <Trash2
-                                size={18}
-                                className="text-slate-300 hover:text-red-500"
+                                size={14}
+                                className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500"
                               />
                             </button>
                           </div>

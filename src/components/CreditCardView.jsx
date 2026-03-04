@@ -147,11 +147,18 @@ const CreditCardView = ({
       lastYear = currentYear + Math.floor(totalMonths / 12);
     }
 
+    // Para parceladas, o valor informado é o total — dividimos pelas parcelas
+    const rawValue = parseFloat(newCardExpense.value);
+    const installmentsCount = newCardExpense.type === 'installment' ? parseInt(newCardExpense.installments) : null;
+    const perInstallmentValue = newCardExpense.type === 'installment'
+      ? Math.round((rawValue / installmentsCount) * 100) / 100
+      : rawValue;
+
     const expenseData = {
       name: newCardExpense.name,
-      value: parseFloat(newCardExpense.value),
+      value: perInstallmentValue,
       type: newCardExpense.type,
-      installments: newCardExpense.type === 'installment' ? parseInt(newCardExpense.installments) : null,
+      installments: installmentsCount,
       lastMonth: lastMonth,
       lastYear: lastYear,
       month: newCardExpense.type === 'eventual' ? parseInt(newCardExpense.month) : null
@@ -473,7 +480,7 @@ const CreditCardView = ({
             <input
               className="w-full sm:w-32 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
               type="number"
-              placeholder="Valor (R$)"
+              placeholder={newCardExpense.type === 'installment' ? "Valor Total (R$)" : "Valor (R$)"}
               value={newCardExpense.value}
               onChange={e => setNewCardExpense({ ...newCardExpense, value: e.target.value })}
             />
@@ -556,7 +563,9 @@ const CreditCardView = ({
                     const total = sm + inst - 1;
                     const lm = total % 12;
                     const ly = currentYear + Math.floor(total / 12);
-                    return `Última parcela: ${MONTHS[lm]}/${String(ly).slice(-2)}`;
+                    const val = parseFloat(newCardExpense.value);
+                    const perInstallment = val && inst ? Math.round((val / inst) * 100) / 100 : 0;
+                    return `${inst}x de ${formatCurrency(perInstallment)} · Última: ${MONTHS[lm]}/${String(ly).slice(-2)}`;
                   })()
                 : "Eventuais aparecem apenas no mês selecionado"}
             </div>
@@ -671,7 +680,7 @@ const CreditCardView = ({
                           {isEditable ? (
                             <div className="flex items-center gap-2">
                               <div className={`flex items-center gap-2 p-1 rounded border ${
-                                isOverridden ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'border-transparent'
+                                'border-transparent'
                               }`}>
                                 <span className="text-xs text-slate-400 dark:text-slate-500">{MONTHS[selectedMonth]}:</span>
                                 <EditableValue

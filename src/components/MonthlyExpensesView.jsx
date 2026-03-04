@@ -304,11 +304,7 @@ const MonthlyExpensesView = ({
 
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           <div
-            className={`flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border ${
-              isOverridden
-                ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'
-            }`}
+            className="flex items-center gap-0.5 md:gap-2 p-1 px-1.5 md:px-2 rounded border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
           >
             <span className="text-xs text-slate-400 dark:text-slate-500 hidden md:inline">R$</span>
             <EditableValue
