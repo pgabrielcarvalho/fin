@@ -7,6 +7,7 @@ import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import EditableValue from './EditableValue';
+import TypeSelector from './TypeSelector';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
 import { validateIncome, getMonthlyIncome } from '../services/calculations';
@@ -261,32 +262,17 @@ const IncomeView = ({
           <Plus size={16} className="text-emerald-500 dark:text-emerald-400" /> Adicionar Nova Receita
         </h3>
 
-        {/* Toggle de Tipo */}
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setNewIncome({ ...newIncome, type: 'fixed' })}
-            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
-              newIncome.type === 'fixed'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Fixo
-          </button>
-          <button
-            onClick={() => setNewIncome({ ...newIncome, type: 'variable' })}
-            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
-              newIncome.type === 'variable'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Variável
-          </button>
-        </div>
-
         <div className="flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <TypeSelector
+              options={[
+                { label: 'Fixo', value: 'fixed' },
+                { label: 'Variável', value: 'variable' },
+              ]}
+              value={newIncome.type}
+              onChange={(type) => setNewIncome({ ...newIncome, type })}
+              activeColor="emerald"
+            />
             <input
               className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-200"
               placeholder={newIncome.type === 'fixed' ? "Descrição (Ex: Salário, Aluguel)" : "Descrição (Ex: Freelance, Bônus)"}

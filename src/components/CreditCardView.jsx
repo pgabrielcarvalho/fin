@@ -7,9 +7,11 @@ import CategoryPicker from './CategoryPicker';
 import CategoryManager from './CategoryManager';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
 import EditableValue from './EditableValue';
+import TypeSelector from './TypeSelector';
+import InstallmentPreview from './InstallmentPreview';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, isCardExpenseActive } from '../services/calculations';
+import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, isCardExpenseActive, getDefaultInvoiceMonth } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 import { useDragReorder } from '../hooks/useDragReorder';
 
@@ -26,7 +28,9 @@ const CreditCardView = ({
   onSaveNotes,
   categories = [],
   onSaveCategories,
-  selectedYear
+  selectedYear,
+  cardSettings,
+  onSaveCardSettings
 }) => {
   const toast = useToast();
   const [newCardExpense, setNewCardExpense] = useState({
@@ -349,7 +353,22 @@ const CreditCardView = ({
       {showSummary && <>
       {/* Card de Fatura */}
       <div className="bg-indigo-600 dark:bg-indigo-700 p-6 rounded-xl shadow-lg text-white">
-        <h3 className="font-bold mb-4">Fechamento da Fatura ({MONTHS[selectedMonth]})</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold">Fechamento da Fatura ({MONTHS[selectedMonth]})</h3>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-indigo-200 text-xs">Fecha dia</span>
+            <EditableValue
+              value={(cardSettings?.closingDates || Array(12).fill(10))[selectedMonth] || 10}
+              onSave={(val) => {
+                const day = Math.min(31, Math.max(1, Math.round(val)));
+                const newDates = [...(cardSettings?.closingDates || Array(12).fill(10))];
+                newDates[selectedMonth] = day;
+                onSaveCardSettings({ ...cardSettings, closingDates: newDates });
+              }}
+              className="w-10 bg-white/20 text-white font-bold text-center rounded px-1 py-0.5 outline-none"
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-xs text-indigo-200 block mb-2">Valor Real (App do Banco)</label>
@@ -432,45 +451,27 @@ const CreditCardView = ({
           <Plus size={16} className="text-indigo-500 dark:text-indigo-400" /> Adicionar Despesa do Cartão
         </h3>
 
-        {/* Toggle de Tipo */}
-        <div className="flex gap-2 mb-3">
-          <button
-            type="button"
-            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'fixed' })}
-            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
-              newCardExpense.type === 'fixed'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Fixa
-          </button>
-          <button
-            type="button"
-            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'installment' })}
-            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
-              newCardExpense.type === 'installment'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Parcelada
-          </button>
-          <button
-            type="button"
-            onClick={() => setNewCardExpense({ ...newCardExpense, type: 'eventual' })}
-            className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
-              newCardExpense.type === 'eventual'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-            }`}
-          >
-            Eventual
-          </button>
-        </div>
-
         <div className="flex flex-col gap-2">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <TypeSelector
+              options={[
+                { label: 'Fixa', value: 'fixed' },
+                { label: 'Parcelada', value: 'installment' },
+                { label: 'Eventual', value: 'eventual' },
+              ]}
+              value={newCardExpense.type}
+              onChange={(type) => {
+                const updates = { ...newCardExpense, type };
+                if (type === 'eventual' || type === 'installment') {
+                  const closingDates = cardSettings?.closingDates || Array(12).fill(10);
+                  const autoMonth = getDefaultInvoiceMonth(closingDates, currentYear);
+                  if (type === 'eventual') updates.month = autoMonth;
+                  if (type === 'installment') updates.startMonth = autoMonth;
+                }
+                setNewCardExpense(updates);
+              }}
+              activeColor="indigo"
+            />
             <input
               className="flex-1 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 dark:text-slate-200"
               placeholder="Descrição (Ex: Netflix, Compra do Notebook)"
@@ -556,20 +557,25 @@ const CreditCardView = ({
             <div className="text-xs text-slate-500 dark:text-slate-400">
               {newCardExpense.type === 'fixed'
                 ? "Fixas aparecem todos os meses"
-                : newCardExpense.type === 'installment'
+                : newCardExpense.type === 'eventual'
                 ? (() => {
-                    const sm = parseInt(newCardExpense.startMonth);
-                    const inst = parseInt(newCardExpense.installments);
-                    const total = sm + inst - 1;
-                    const lm = total % 12;
-                    const ly = currentYear + Math.floor(total / 12);
-                    const val = parseFloat(newCardExpense.value);
-                    const perInstallment = val && inst ? Math.round((val / inst) * 100) / 100 : 0;
-                    return `${inst}x de ${formatCurrency(perInstallment)} · Última: ${MONTHS[lm]}/${String(ly).slice(-2)}`;
+                    const closingDates = cardSettings?.closingDates || Array(12).fill(10);
+                    const closingDay = closingDates[selectedMonth] || 10;
+                    return `Fechamento dia ${closingDay} — compras após essa data vão para ${MONTHS[(selectedMonth + 1) % 12]}`;
                   })()
-                : "Eventuais aparecem apenas no mês selecionado"}
+                : ""}
             </div>
           </div>
+
+          {/* Preview visual de parcelas */}
+          {newCardExpense.type === 'installment' && parseFloat(newCardExpense.value) > 0 && (
+            <InstallmentPreview
+              totalValue={parseFloat(newCardExpense.value)}
+              installments={parseInt(newCardExpense.installments)}
+              startMonth={parseInt(newCardExpense.startMonth)}
+              currentYear={currentYear}
+            />
+          )}
         </div>
       </div>
 

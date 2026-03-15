@@ -22,6 +22,8 @@ import VacationFundView from './components/VacationFundView';
 import ExportMenu from './components/ExportMenu';
 import MonthComparison from './components/MonthComparison';
 import OfficeView from './components/OfficeView';
+import QuickAddFAB from './components/QuickAddFAB';
+import QuickAddModal from './components/QuickAddModal';
 
 // Services
 import { exportToJSON, exportToCSV, exportToPDF, importFromJSON } from './services/exportService';
@@ -58,6 +60,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('monthly');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   // --- OPERAÇÕES DO FIRESTORE (com ano) ---
   const { saveItem, batchSaveItems, deleteItem, saveDocument } = useFirestoreOperations(user, selectedYear);
@@ -80,6 +83,7 @@ const App = () => {
   const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES, selectedYear);
   const { data: obligations } = useCollection(user, 'obligations', INITIAL_OBLIGATIONS, selectedYear);
   const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''), selectedYear);
+  const { data: cardSettings } = useDocument(user, 'card_settings', { closingDates: Array(12).fill(10) }, selectedYear);
 
   // --- HANDLERS ---
   const handleLogin = async () => {
@@ -122,6 +126,10 @@ const App = () => {
     await saveDocument('obligations_notes', newNotes);
   };
 
+  const handleSaveCardSettings = async (newSettings) => {
+    await saveDocument('card_settings', newSettings);
+  };
+
   const handleSaveGoals = async (newGoals) => {
     await saveDocument('goals', newGoals);
   };
@@ -151,6 +159,7 @@ const App = () => {
       obligationsNotes,
       expenseCategories,
       incomeCategories,
+      cardSettings,
       year: selectedYear
     };
 
@@ -223,6 +232,7 @@ const App = () => {
       if (data.creditNotes) await saveDocument('credit_notes', data.creditNotes);
       if (data.vacationNotes) await saveDocument('vacation_notes', data.vacationNotes);
       if (data.obligationsNotes) await saveDocument('obligations_notes', data.obligationsNotes);
+      if (data.cardSettings) await saveDocument('card_settings', data.cardSettings);
 
       toast.success('Dados importados com sucesso!');
     } catch (error) {
@@ -389,6 +399,8 @@ const App = () => {
               categories={expenseCategories}
               onSaveCategories={handleSaveCategories}
               selectedYear={selectedYear}
+              cardSettings={cardSettings}
+              onSaveCardSettings={handleSaveCardSettings}
             />
           )}
 
@@ -437,6 +449,20 @@ const App = () => {
           )}
         </div>
       </main>
+
+      <QuickAddFAB onClick={() => setShowQuickAdd(true)} />
+      {showQuickAdd && (
+        <QuickAddModal
+          onClose={() => setShowQuickAdd(false)}
+          onSave={saveItem}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          expenseCategories={expenseCategories}
+          incomeCategories={incomeCategories}
+          cardSettings={cardSettings}
+          creditCardExpenses={creditCardExpenses}
+        />
+      )}
     </div>
   );
 };

@@ -427,7 +427,8 @@ export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
     'expenses_notes',
     'credit_notes',
     'vacation_notes',
-    'obligations_notes'
+    'obligations_notes',
+    'card_settings'
   ];
 
   let totalMigrated = 0;
@@ -596,8 +597,8 @@ export const copyYearData = async (userId, fromYear, toYear) => {
       }
     }
 
-    // Copiar categorias
-    const catDocs = ['expense_categories', 'income_categories'];
+    // Copiar categorias e configurações do cartão
+    const catDocs = ['expense_categories', 'income_categories', 'card_settings'];
     for (const catDoc of catDocs) {
       const fromDocRef = doc(db, ...fromPath, 'general', catDoc);
       // Ler via getDocs da subcoleção general
