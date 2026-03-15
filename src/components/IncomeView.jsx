@@ -36,7 +36,7 @@ const IncomeView = ({
     extraordinary: false
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
 
   // Filtrar receitas por tipo
   const fixedIncomes = useMemo(() => incomes.filter(i => i.type === 'fixed'), [incomes]);

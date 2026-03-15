@@ -45,7 +45,7 @@ const CreditCardView = ({
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
 
   // Usar hook de reordenação para todos os itens cadastrados
   const { sortedItems: sortedCreditExpenses } = useReorder(

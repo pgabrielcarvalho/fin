@@ -42,7 +42,7 @@ const MonthlyExpensesView = ({
   });
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear);
 
