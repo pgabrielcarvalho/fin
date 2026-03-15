@@ -394,56 +394,90 @@ const CreditCardView = ({
         </div>
       </div>
 
-      {/* Alertas de Parcelas Finalizando */}
+      </>}
+
+      {/* Alertas de Parcelas Finalizando — sempre visíveis */}
       {endingInstallments.length > 0 && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <PartyPopper size={18} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">
-              {endingInstallments.length === 1 ? 'Parcela finalizando' : 'Parcelas finalizando'} neste mês!
+        <div className="rounded-xl overflow-hidden border border-emerald-200 dark:border-emerald-800/60">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-600 dark:bg-emerald-700">
+            <PartyPopper size={16} className="text-emerald-100" />
+            <span className="font-bold text-white text-sm">
+              {endingInstallments.length === 1 ? 'Última parcela' : 'Últimas parcelas'} neste mês
+            </span>
+            <span className="ml-auto text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
+              {endingInstallments.length} {endingInstallments.length === 1 ? 'item' : 'itens'}
             </span>
           </div>
-          <div className="space-y-1">
+          <div className="bg-emerald-50 dark:bg-emerald-900/15 divide-y divide-emerald-100 dark:divide-emerald-800/40">
             {endingInstallments.map(item => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-emerald-700 dark:text-emerald-300">
-                  {item.name} ({item.installments}x) — última parcela
-                </span>
-                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">
+              <div key={item.id} className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 flex-shrink-0" />
+                  <span className="text-sm text-slate-700 dark:text-slate-200 truncate">{item.name}</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
+                    {item.installments}/{item.installments}x
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-200 ml-3">
                   {formatCurrency(item.value)}
                 </span>
               </div>
             ))}
-            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
-              Valor liberado a partir do próximo mês: {formatCurrency(endingInstallments.reduce((sum, i) => sum + i.value, 0))}
+            <div className="flex items-center justify-between px-4 py-3 bg-emerald-100/60 dark:bg-emerald-900/30">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                Valor liberado no próximo mês
+              </span>
+              <span className="font-mono font-bold text-sm text-emerald-700 dark:text-emerald-300">
+                {formatCurrency(endingInstallments.reduce((sum, i) => sum + i.value, 0))}
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {endingNextMonth.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400" />
-            <span className="font-bold text-amber-800 dark:text-amber-300 text-sm">
-              {endingNextMonth.length === 1 ? 'Parcela finalizando' : 'Parcelas finalizando'} no próximo mês
-            </span>
-          </div>
-          <div className="space-y-1">
-            {endingNextMonth.map(item => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-amber-700 dark:text-amber-300">
-                  {item.name} ({item.installments}x) — penúltima parcela
+      {endingNextMonth.length > 0 && (() => {
+        const totalEnding = endingNextMonth.reduce((sum, i) => sum + i.value, 0);
+        return (
+          <div className="rounded-xl overflow-hidden border border-amber-200 dark:border-amber-800/60">
+            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-500 dark:bg-amber-600">
+              <AlertTriangle size={16} className="text-amber-100" />
+              <span className="font-bold text-white text-sm">
+                {endingNextMonth.length === 1 ? 'Penúltima parcela' : 'Penúltimas parcelas'} — encerram no próximo mês
+              </span>
+              <span className="ml-auto text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-medium">
+                {endingNextMonth.length} {endingNextMonth.length === 1 ? 'item' : 'itens'}
+              </span>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/15 divide-y divide-amber-100 dark:divide-amber-800/40">
+              {endingNextMonth.map(item => {
+                const parcel = getCurrentParcel(item);
+                return (
+                  <div key={item.id} className="flex items-center justify-between px-4 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 flex-shrink-0" />
+                      <span className="text-sm text-slate-700 dark:text-slate-200 truncate">{item.name}</span>
+                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap">
+                        {parcel}/{item.installments}x
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-sm text-slate-800 dark:text-slate-200 ml-3">
+                      {formatCurrency(item.value)}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="flex items-center justify-between px-4 py-3 bg-amber-100/60 dark:bg-amber-900/30">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  Total encerrando
                 </span>
-                <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
-                  {formatCurrency(item.value)}
+                <span className="font-mono font-bold text-sm text-amber-700 dark:text-amber-300">
+                  {formatCurrency(totalEnding)}
                 </span>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      )}
-      </>}
+        );
+      })()}
 
       {/* Adicionar Despesa */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
