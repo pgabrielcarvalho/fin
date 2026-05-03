@@ -70,7 +70,6 @@ const App = () => {
   const { data: expenses } = useCollection(user, 'expenses', INITIAL_EXPENSES, selectedYear);
   const { data: creditCardExpenses } = useCollection(user, 'credit_expenses', INITIAL_CREDIT_EXPENSES, selectedYear);
   const { data: invoiceTotals } = useDocument(user, 'invoice_totals', Array(12).fill(0), selectedYear);
-  const { data: goals } = useDocument(user, 'goals', { monthlyGoals: [], alerts: { lowBalance: true, highExpenses: true, balanceThreshold: 1000, expenseThreshold: 80 } }, selectedYear);
   const { data: expenseCategories } = useDocument(user, 'expense_categories', DEFAULT_CATEGORIES, selectedYear);
 
   // --- DADOS LAZY (ativam só na aba correspondente, com ano) ---
@@ -130,10 +129,6 @@ const App = () => {
     await saveDocument('card_settings', newSettings);
   };
 
-  const handleSaveGoals = async (newGoals) => {
-    await saveDocument('goals', newGoals);
-  };
-
   const handleSaveCategories = async (newCategories) => {
     await saveDocument('expense_categories', newCategories);
   };
@@ -154,7 +149,6 @@ const App = () => {
       expensesNotes,
       creditNotes,
       vacationNotes,
-      goals,
       obligations,
       obligationsNotes,
       expenseCategories,
@@ -183,6 +177,17 @@ const App = () => {
   const handleImport = async (file) => {
     try {
       const data = await importFromJSON(file);
+
+      const exportDate = data.exportDate
+        ? new Date(data.exportDate).toLocaleString('pt-BR')
+        : 'data desconhecida';
+      const confirmed = window.confirm(
+        `Importar backup de ${exportDate} (ano ${data.year ?? '?'})?\n\n` +
+        `ATENÇÃO: todos os dados atuais do ano ${selectedYear} serão substituídos. ` +
+        `Esta ação não pode ser desfeita.`
+      );
+      if (!confirmed) return;
+
       toast.success('Importação iniciada... Isso pode levar alguns segundos.');
 
       const batchItems = [];

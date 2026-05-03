@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Configuração do Firebase usando variáveis de ambiente (Vite)
 const getFirebaseConfig = () => {
@@ -38,18 +38,11 @@ validateConfig(firebaseConfig);
 // Inicialização
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Habilita persistência offline (opcional, mas recomendado)
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Persistência não habilitada: múltiplas abas abertas');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Persistência não suportada neste navegador');
-    }
-  });
-}
+const db = initializeFirestore(app, {
+  cache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
 /**
  * Retorna os segmentos de caminho base do usuário com namespace de ano

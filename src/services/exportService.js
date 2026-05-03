@@ -327,6 +327,8 @@ export const exportToPDF = (data, selectedMonth, selectedYear = new Date().getFu
 /**
  * Importa dados de backup JSON
  */
+const CURRENT_BACKUP_VERSION = '3.0.0';
+
 export const importFromJSON = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -335,9 +337,17 @@ export const importFromJSON = (file) => {
       try {
         const data = JSON.parse(e.target.result);
 
-        // Validação básica
         if (!data.incomes && !data.expenses && !data.creditCardExpenses) {
           reject(new Error('Arquivo JSON inválido'));
+          return;
+        }
+
+        if (data.version !== CURRENT_BACKUP_VERSION) {
+          reject(new Error(
+            `Versão do backup incompatível: arquivo é versão "${data.version || 'desconhecida'}", ` +
+            `mas o sistema exige versão "${CURRENT_BACKUP_VERSION}". ` +
+            `Importação bloqueada para evitar perda de dados.`
+          ));
           return;
         }
 

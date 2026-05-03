@@ -24,6 +24,8 @@ const CategoryManager = ({ categories = [], onSave, onClose }) => {
   };
 
   const handleDelete = (id) => {
+    const cat = localCategories.find(c => c.id === id);
+    if (!window.confirm(`Excluir a categoria "${cat?.name}"? Itens vinculados a ela perderão o vínculo.`)) return;
     const updated = localCategories.filter(c => c.id !== id);
     setLocalCategories(updated);
     onSave(updated);
