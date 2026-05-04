@@ -395,9 +395,26 @@ const seedCollection = async (userId, collectionName, initialData, year) => {
  */
 export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
   const migrationKey = `migrated_to_years_v1_${userId}`;
+  const migrationFlagRef = doc(db, 'artifacts', appId, 'users', userId, 'meta', 'migration');
 
+  // Verificar flag no localStorage (sessões recentes, evita leitura desnecessária)
   if (localStorage.getItem(migrationKey)) {
     return { migrated: false, reason: 'already_done' };
+  }
+
+  // Verificar flag no Firestore (persiste entre reinstalações do PWA)
+  try {
+    const migrationSnap = await getDocs(
+      query(collection(db, 'artifacts', appId, 'users', userId, 'meta'))
+    );
+    const migrationDoc = migrationSnap.docs.find(d => d.id === 'migration');
+    if (migrationDoc?.data()?.completed) {
+      // Restaurar flag no localStorage para evitar leituras futuras
+      localStorage.setItem(migrationKey, migrationDoc.data().completedAt || 'true');
+      return { migrated: false, reason: 'already_done' };
+    }
+  } catch {
+    // Se não conseguir verificar, prosseguir com cautela
   }
 
   const legacyPath = getUserLegacyPath(userId);
@@ -486,15 +503,26 @@ export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
       console.warn('Registro de anos disponíveis falhou:', metaErr.message);
     }
 
-    // Sempre marcar migração como concluída para não travar o app em loops
-    localStorage.setItem(migrationKey, new Date().toISOString());
+    // Marcar migração como concluída — no Firestore (persiste entre reinstalações)
+    // e no localStorage (evita leitura desnecessária em sessões futuras)
+    const completedAt = new Date().toISOString();
+    try {
+      await setDoc(migrationFlagRef, { completed: true, completedAt });
+    } catch {
+      // Se falhar ao gravar flag, não é crítico — localStorage garante a sessão atual
+    }
+    localStorage.setItem(migrationKey, completedAt);
     console.log(`Migração concluída: ${totalMigrated} itens migrados para years/${targetYear}`);
 
     return { migrated: true, count: totalMigrated };
   } catch (err) {
     console.error('Erro na migração:', err);
     // Mesmo com erro, marcar como feita para não travar o app
-    localStorage.setItem(migrationKey, `error_${new Date().toISOString()}`);
+    const errorAt = `error_${new Date().toISOString()}`;
+    try {
+      await setDoc(migrationFlagRef, { completed: true, completedAt: errorAt });
+    } catch { /* ignorar */ }
+    localStorage.setItem(migrationKey, errorAt);
     return { migrated: false, reason: 'error', error: err.message };
   }
 };
