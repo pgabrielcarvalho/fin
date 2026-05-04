@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
+import MonthlyNotes from './MonthlyNotes';
 import { MonthlyComparisonChart, BalanceTrendChart, ConsolidatedCategoryDonut } from './Charts';
 import { formatCurrency } from '../utils/formatters';
 import {
@@ -20,7 +21,9 @@ const Dashboard = ({
   invoiceTotals,
   onNavigate,
   categories = [],
-  selectedYear
+  selectedYear,
+  notes,
+  onSaveNotes
 }) => {
   const [hideExtraordinary, setHideExtraordinary] = useState(false);
 
@@ -174,6 +177,12 @@ const Dashboard = ({
           selectedYear={selectedYear}
         />
       </div>
+
+      <MonthlyNotes
+        selectedMonth={selectedMonth}
+        notes={notes}
+        onSave={onSaveNotes}
+      />
     </div>
   );
 };

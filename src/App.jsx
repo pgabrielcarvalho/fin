@@ -75,13 +75,9 @@ const App = () => {
   // --- DADOS LAZY (ativam só na aba correspondente, com ano) ---
   const { data: vacationIncomes } = useLazyCollection(user, 'vacation_incomes', activeTab === 'vacation', INITIAL_VACATION_INCOMES, selectedYear);
   const { data: vacationExpenses } = useLazyCollection(user, 'vacation_expenses', activeTab === 'vacation', INITIAL_VACATION_EXPENSES, selectedYear);
-  const { data: incomesNotes } = useLazyDocument(user, 'incomes_notes', activeTab === 'incomes', Array(12).fill(''), selectedYear);
-  const { data: expensesNotes } = useLazyDocument(user, 'expenses_notes', activeTab === 'monthly', Array(12).fill(''), selectedYear);
-  const { data: creditNotes } = useLazyDocument(user, 'credit_notes', activeTab === 'credit', Array(12).fill(''), selectedYear);
-  const { data: vacationNotes } = useLazyDocument(user, 'vacation_notes', activeTab === 'vacation', Array(12).fill(''), selectedYear);
+  const { data: monthNotes } = useDocument(user, 'month_notes', Array(12).fill(''), selectedYear);
   const { data: incomeCategories } = useLazyDocument(user, 'income_categories', activeTab === 'incomes', DEFAULT_INCOME_CATEGORIES, selectedYear);
   const { data: obligations } = useCollection(user, 'obligations', INITIAL_OBLIGATIONS, selectedYear);
-  const { data: obligationsNotes } = useLazyDocument(user, 'obligations_notes', activeTab === 'office', Array(12).fill(''), selectedYear);
   const { data: cardSettings } = useDocument(user, 'card_settings', { closingDates: Array(12).fill(10) }, selectedYear);
 
   // --- HANDLERS ---
@@ -105,24 +101,8 @@ const App = () => {
     await saveDocument('invoice_totals', newTotals);
   };
 
-  const handleSaveIncomesNotes = async (newNotes) => {
-    await saveDocument('incomes_notes', newNotes);
-  };
-
-  const handleSaveExpensesNotes = async (newNotes) => {
-    await saveDocument('expenses_notes', newNotes);
-  };
-
-  const handleSaveCreditNotes = async (newNotes) => {
-    await saveDocument('credit_notes', newNotes);
-  };
-
-  const handleSaveVacationNotes = async (newNotes) => {
-    await saveDocument('vacation_notes', newNotes);
-  };
-
-  const handleSaveObligationsNotes = async (newNotes) => {
-    await saveDocument('obligations_notes', newNotes);
+  const handleSaveMonthNotes = async (newNotes) => {
+    await saveDocument('month_notes', newNotes);
   };
 
   const handleSaveCardSettings = async (newSettings) => {
@@ -145,12 +125,8 @@ const App = () => {
       invoiceTotals,
       vacationIncomes,
       vacationExpenses,
-      incomesNotes,
-      expensesNotes,
-      creditNotes,
-      vacationNotes,
+      monthNotes,
       obligations,
-      obligationsNotes,
       expenseCategories,
       incomeCategories,
       cardSettings,
@@ -232,11 +208,7 @@ const App = () => {
       if (data.goals) await saveDocument('goals', data.goals);
       if (data.expenseCategories) await saveDocument('expense_categories', data.expenseCategories);
       if (data.incomeCategories) await saveDocument('income_categories', data.incomeCategories);
-      if (data.incomesNotes) await saveDocument('incomes_notes', data.incomesNotes);
-      if (data.expensesNotes) await saveDocument('expenses_notes', data.expensesNotes);
-      if (data.creditNotes) await saveDocument('credit_notes', data.creditNotes);
-      if (data.vacationNotes) await saveDocument('vacation_notes', data.vacationNotes);
-      if (data.obligationsNotes) await saveDocument('obligations_notes', data.obligationsNotes);
+      if (data.monthNotes) await saveDocument('month_notes', data.monthNotes);
       if (data.cardSettings) await saveDocument('card_settings', data.cardSettings);
 
       toast.success('Dados importados com sucesso!');
@@ -351,6 +323,8 @@ const App = () => {
               onNavigate={setActiveTab}
               categories={expenseCategories}
               selectedYear={selectedYear}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
             />
           )}
 
@@ -362,8 +336,8 @@ const App = () => {
               onSave={saveItem}
               onBatchSave={batchSaveItems}
               onDelete={deleteItem}
-              notes={incomesNotes}
-              onSaveNotes={handleSaveIncomesNotes}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
               categories={incomeCategories}
               onSaveCategories={handleSaveIncomeCategories}
             />
@@ -381,8 +355,8 @@ const App = () => {
               onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               onNavigate={setActiveTab}
-              notes={expensesNotes}
-              onSaveNotes={handleSaveExpensesNotes}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
               categories={expenseCategories}
               onSaveCategories={handleSaveCategories}
               selectedYear={selectedYear}
@@ -399,8 +373,8 @@ const App = () => {
               onBatchSave={batchSaveItems}
               onDelete={deleteItem}
               onSaveInvoiceTotal={handleSaveInvoiceTotal}
-              notes={creditNotes}
-              onSaveNotes={handleSaveCreditNotes}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
               categories={expenseCategories}
               onSaveCategories={handleSaveCategories}
               selectedYear={selectedYear}
@@ -425,8 +399,8 @@ const App = () => {
               onSave={saveItem}
               onBatchSave={batchSaveItems}
               onDelete={deleteItem}
-              notes={vacationNotes}
-              onSaveNotes={handleSaveVacationNotes}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
             />
           )}
 
@@ -438,8 +412,8 @@ const App = () => {
               onSave={saveItem}
               onBatchSave={batchSaveItems}
               onDelete={deleteItem}
-              notes={obligationsNotes}
-              onSaveNotes={handleSaveObligationsNotes}
+              notes={monthNotes}
+              onSaveNotes={handleSaveMonthNotes}
             />
           )}
 
