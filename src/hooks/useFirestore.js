@@ -97,11 +97,10 @@ export const useDocument = (user, docPath, defaultValue = null, year = null) => 
       (docSnap) => {
         if (docSnap.exists()) {
           setData(docSnap.data().data);
-        } else if (defaultValue !== null) {
-          // Cria documento com valor padrão
-          setDoc(docRef, { data: defaultValue }).catch(e =>
-            console.error("Erro ao criar documento:", e)
-          );
+        } else {
+          // Documento não existe — usa defaultValue apenas localmente,
+          // sem gravar no Firestore (evita sobrescrever dados reais
+          // que ainda não chegaram do servidor)
           setData(defaultValue);
         }
         setLoading(false);
@@ -205,10 +204,7 @@ export const useLazyDocument = (user, docPath, enabled, defaultValue = null, yea
       (docSnap) => {
         if (docSnap.exists()) {
           setData(docSnap.data().data);
-        } else if (defaultValue !== null) {
-          setDoc(docRef, { data: defaultValue }).catch(e =>
-            console.error("Erro ao criar documento:", e)
-          );
+        } else {
           setData(defaultValue);
         }
         setLoading(false);
