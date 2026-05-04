@@ -40,21 +40,6 @@ export const useCollection = (user, collectionName, seedData = null, year = null
           ...doc.data()
         }));
 
-        // Popula dados iniciais se vazio
-        if (items.length === 0 && seedData) {
-          const shouldSeed = !localStorage.getItem(
-            `seeded_${collectionName}_v5_${user.uid}_${year}`
-          );
-
-          if (shouldSeed) {
-            seedCollection(user.uid, collectionName, seedData, year);
-            localStorage.setItem(
-              `seeded_${collectionName}_v5_${user.uid}_${year}`,
-              'true'
-            );
-          }
-        }
-
         setData(items);
         setLoading(false);
         setError(null);
@@ -147,20 +132,6 @@ export const useLazyCollection = (user, collectionName, enabled, seedData = null
           id: doc.id,
           ...doc.data()
         }));
-
-        if (items.length === 0 && seedData) {
-          const shouldSeed = !localStorage.getItem(
-            `seeded_${collectionName}_v5_${user.uid}_${year}`
-          );
-
-          if (shouldSeed) {
-            seedCollection(user.uid, collectionName, seedData, year);
-            localStorage.setItem(
-              `seeded_${collectionName}_v5_${user.uid}_${year}`,
-              'true'
-            );
-          }
-        }
 
         setData(items);
         setLoading(false);
@@ -371,26 +342,6 @@ export const useFirestoreOperations = (user, year = null) => {
 };
 
 /**
- * Função auxiliar para popular coleção com dados iniciais (com namespace de ano)
- */
-const seedCollection = async (userId, collectionName, initialData, year) => {
-  const basePath = getUserYearPath(userId, year);
-  const batch = writeBatch(db);
-
-  initialData.forEach(item => {
-    const docRef = doc(collection(db, ...basePath, collectionName));
-    batch.set(docRef, item);
-  });
-
-  try {
-    await batch.commit();
-    console.log(`Dados iniciais populados para ${collectionName} (${year})`);
-  } catch (e) {
-    console.error("Erro ao popular dados iniciais:", e);
-  }
-};
-
-/**
  * Migra dados do caminho legado (sem anos) para o caminho novo (years/{ano})
  */
 export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
@@ -414,7 +365,8 @@ export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
       return { migrated: false, reason: 'already_done' };
     }
   } catch {
-    // Se não conseguir verificar, prosseguir com cautela
+    // Se não conseguir verificar flag no Firestore, abortar — não arriscar sobrescrever dados reais
+    return { migrated: false, reason: 'flag_check_failed' };
   }
 
   const legacyPath = getUserLegacyPath(userId);
