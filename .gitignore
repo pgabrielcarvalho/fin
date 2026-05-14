@@ -23,7 +23,22 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
+# Environment variables e credenciais
+.env
 .env.local
 .env.*.local
-.env
+service-account.json
+*.pem
+*.key
+
+# Vercel
+.vercel
+
+# Servidor local de desenvolvimento da API do agente
+api/server-local.js
+
+# Ferramentas de desenvolvimento de agentes (Claude Code, Reversa, etc.)
+.agents/
+.claude/
+.reversa/
+_reversa_sdd/
