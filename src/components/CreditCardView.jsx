@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Trash2, RotateCcw, Settings2, AlertTriangle, PartyPopper, Layers, Sparkles, ChevronDown, ChevronUp, X, ArrowUp, DollarSign } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -11,7 +11,7 @@ import TypeSelector from './TypeSelector';
 import InstallmentPreview from './InstallmentPreview';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, isCardExpenseActive, getDefaultInvoiceMonth } from '../services/calculations';
+import { validateCardExpense, getActiveCardExpenses, getMiscellaneousCardExpenses, getDefaultInvoiceMonth } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 import { useDragReorder } from '../hooks/useDragReorder';
 
@@ -46,6 +46,8 @@ const CreditCardView = ({
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
+  const [readjustModal, setReadjustModal] = useState(false);
+  const [readjustValues, setReadjustValues] = useState({}); // { [expenseId]: novoValorString }
 
   // Usar hook de reordenação para todos os itens cadastrados
   const { sortedItems: sortedCreditExpenses } = useReorder(
@@ -93,7 +95,7 @@ const CreditCardView = ({
   }, [sortedCreditExpenses, selectedMonth, currentYear]);
 
   const manualInvoiceTotal = invoiceTotals?.[selectedMonth] || 0;
-  const finalCardTotal = manualInvoiceTotal > 0 ? manualInvoiceTotal : plannedCardTotal;
+  const _finalCardTotal = manualInvoiceTotal > 0 ? manualInvoiceTotal : plannedCardTotal;
   const miscellaneousExpenses = getMiscellaneousCardExpenses(plannedCardTotal, manualInvoiceTotal);
 
   // Agrupar despesas por categoria
@@ -258,7 +260,7 @@ const CreditCardView = ({
   };
 
   // Helper: resolve nome da categoria (suporta categoryId novo e category legado)
-  const getCategoryName = (item) => {
+  const _getCategoryName = (item) => {
     if (item.categoryId) {
       const cat = categories.find(c => c.id === item.categoryId);
       return cat ? cat.name : null;
@@ -276,7 +278,7 @@ const CreditCardView = ({
     return item.installments - monthsRemaining;
   };
 
-  const handleCopyFromMonth = async (sourceMonth) => {
+  const _handleCopyFromMonth = async (sourceMonth) => {
     const batchItems = [];
 
     // 1. Copiar valores efetivos de despesas fixas do cartão
@@ -332,6 +334,73 @@ const CreditCardView = ({
     }
 
     toast.success(`${copiedCount} ${copiedCount === 1 ? 'item copiado' : 'itens copiados'} de ${MONTHS[sourceMonth]}`);
+  };
+
+  // Despesas fixas do cartão (alvo do reajuste) — sem type ou type 'fixed'.
+  // Parceladas e eventuais ficam de fora: têm vigência/valor próprios.
+  const fixedCardExpenses = useMemo(
+    () => creditCardExpenses.filter(e => !e.type || e.type === 'fixed'),
+    [creditCardExpenses]
+  );
+
+  const openReadjustModal = () => {
+    const initial = {};
+    for (const expense of fixedCardExpenses) {
+      const currentValue = expense.overrides?.[selectedMonth] !== undefined
+        ? expense.overrides[selectedMonth]
+        : expense.value;
+      initial[expense.id] = String(currentValue);
+    }
+    setReadjustValues(initial);
+    setReadjustModal(true);
+  };
+
+  // Aplica novos valores de selectedMonth até dezembro (overrides), preservando
+  // os meses anteriores no valor base. Só grava despesas cujo valor mudou.
+  const applyReadjustment = async () => {
+    const batchItems = [];
+
+    for (const expense of fixedCardExpenses) {
+      const raw = readjustValues[expense.id];
+      if (raw === undefined || raw === '') continue;
+
+      const newValue = parseFloat(raw);
+      if (isNaN(newValue) || newValue < 0) continue;
+
+      const currentValue = expense.overrides?.[selectedMonth] !== undefined
+        ? expense.overrides[selectedMonth]
+        : expense.value;
+      if (newValue === currentValue) continue;
+
+      const newOverrides = { ...expense.overrides };
+      for (let m = selectedMonth; m <= 11; m++) {
+        if (newValue === expense.value) {
+          delete newOverrides[m];
+        } else {
+          newOverrides[m] = newValue;
+        }
+      }
+
+      batchItems.push({ collectionName: 'credit_expenses', item: { ...expense, overrides: newOverrides } });
+    }
+
+    if (batchItems.length === 0) {
+      toast.info('Nenhum valor alterado');
+      setReadjustModal(false);
+      return;
+    }
+
+    const result = await onBatchSave(batchItems);
+
+    if (result?.success === false) {
+      toast.error('Erro ao aplicar reajuste');
+      return;
+    }
+
+    setReadjustModal(false);
+    toast.success(
+      `Reajuste aplicado a ${batchItems.length} ${batchItems.length === 1 ? 'despesa' : 'despesas'} a partir de ${MONTHS[selectedMonth]}`
+    );
   };
 
   return (
@@ -622,6 +691,16 @@ const CreditCardView = ({
               {activeItems.length} ativas de {sortedCreditExpenses.length} {sortedCreditExpenses.length === 1 ? 'item' : 'itens'}
             </span>
             <button
+              onClick={openReadjustModal}
+              disabled={fixedCardExpenses.length === 0}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title={`Aplicar novos valores às despesas fixas a partir de ${MONTHS[selectedMonth]}`}
+            >
+              <ArrowUp size={13} strokeWidth={2.5} />
+              <DollarSign size={13} strokeWidth={2.5} />
+              <span className="hidden sm:inline">Reajustar</span>
+            </button>
+            <button
               onClick={() => setGroupByCategory(!groupByCategory)}
               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                 groupByCategory
@@ -862,6 +941,62 @@ const CreditCardView = ({
           onSave={onSaveCategories}
           onClose={() => setShowCategoryManager(false)}
         />
+      )}
+
+      {readjustModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-start p-5 border-b dark:border-slate-700">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Reajustar despesas fixas do cartão</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Novos valores valem de <strong>{MONTHS[selectedMonth]}</strong> em diante. Meses anteriores ficam com o valor base. Parceladas e eventuais não são afetadas.
+                </p>
+              </div>
+              <button onClick={() => setReadjustModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex-shrink-0 ml-2">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-2 flex-1">
+              {fixedCardExpenses.length === 0 ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Nenhuma despesa fixa no cartão.</p>
+              ) : (
+                fixedCardExpenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate">{expense.name}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">Base: {formatCurrency(expense.value)}</div>
+                    </div>
+                    <input
+                      type="number"
+                      value={readjustValues[expense.id] ?? ''}
+                      onChange={(e) => setReadjustValues({ ...readjustValues, [expense.id]: e.target.value })}
+                      className="w-28 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none text-right font-mono text-sm text-slate-800 dark:text-slate-200"
+                      placeholder="Novo valor"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end p-5 border-t dark:border-slate-700">
+              <button
+                onClick={() => setReadjustModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={applyReadjustment}
+                disabled={fixedCardExpenses.length === 0}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aplicar a partir de {MONTHS[selectedMonth]}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Trash2, RotateCcw, TrendingUp, Settings2, Sparkles, ChevronDown, ChevronUp, X, DollarSign, ArrowUp } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -10,7 +10,7 @@ import EditableValue from './EditableValue';
 import TypeSelector from './TypeSelector';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 import { useToast } from '../contexts/ToastContext';
-import { validateIncome, getMonthlyIncome } from '../services/calculations';
+import { validateIncome } from '../services/calculations';
 import { useReorder } from '../hooks/useReorder';
 import { useDragReorder } from '../hooks/useDragReorder';
 
@@ -37,6 +37,9 @@ const IncomeView = ({
   });
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
+  const [deleteModal, setDeleteModal] = useState(null); // { item, type: 'fixed'|'variable' }
+  const [readjustModal, setReadjustModal] = useState(false);
+  const [readjustValues, setReadjustValues] = useState({}); // { [incomeId]: novoValorString }
 
   // Filtrar receitas por tipo
   const fixedIncomes = useMemo(() => incomes.filter(i => i.type === 'fixed'), [incomes]);
@@ -147,18 +150,55 @@ const IncomeView = ({
     toast.info('Valor restaurado');
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta receita?')) {
-      const result = await onDelete('incomes', id);
-      if (result.success) {
-        toast.success('Receita excluída');
-      } else {
-        toast.error('Erro ao excluir receita');
+  const updateVariableValue = async (income, newValue) => {
+    const result = await onSave('incomes', { ...income, value: newValue });
+    if (result?.success === false) toast.error('Erro ao atualizar receita');
+  };
+
+  const saveIncomeOverrides = async (item, overrides, successMessage) => {
+    try {
+      const result = await onSave('incomes', { ...item, overrides });
+      if (result?.success === false) {
+        toast.error('Erro ao salvar alteração');
+        return;
       }
+      toast.success(successMessage);
+    } catch {
+      toast.error('Erro ao salvar alteração');
     }
   };
 
-  const handleCopyFromMonth = async (sourceMonth) => {
+  const handleDelete = (item, type) => {
+    setDeleteModal({ item, type });
+  };
+
+  const confirmDelete = async (mode) => {
+    const { item, type } = deleteModal;
+    setDeleteModal(null);
+
+    if (type === 'variable') {
+      const result = await onDelete('incomes', item.id);
+      if (result.success) toast.success('Receita excluída');
+      else toast.error('Erro ao excluir receita');
+      return;
+    }
+
+    // fixed — modo determina o que fazer
+    if (mode === 'all') {
+      const result = await onDelete('incomes', item.id);
+      if (result.success) toast.success('Receita excluída de todos os meses');
+      else toast.error('Erro ao excluir receita');
+    } else if (mode === 'this') {
+      const newOverrides = { ...item.overrides, [selectedMonth]: 0 };
+      await saveIncomeOverrides(item, newOverrides, `Receita zerada em ${MONTHS[selectedMonth]}`);
+    } else if (mode === 'future') {
+      const newOverrides = { ...item.overrides };
+      for (let m = selectedMonth; m <= 11; m++) newOverrides[m] = 0;
+      await saveIncomeOverrides(item, newOverrides, `Receita zerada de ${MONTHS[selectedMonth]} em diante`);
+    }
+  };
+
+  const _handleCopyFromMonth = async (sourceMonth) => {
     const batchItems = [];
 
     // 1. Copiar overrides de receitas fixas
@@ -200,6 +240,69 @@ const IncomeView = ({
     }
 
     toast.success(`${batchItems.length} ${batchItems.length === 1 ? 'receita copiada' : 'receitas copiadas'} de ${MONTHS[sourceMonth]}`);
+  };
+
+  const openReadjustModal = () => {
+    // Pré-preenche cada receita com o valor vigente no mês atual
+    const initial = {};
+    for (const income of fixedIncomes) {
+      const currentValue = income.overrides?.[selectedMonth] !== undefined
+        ? income.overrides[selectedMonth]
+        : income.value;
+      initial[income.id] = String(currentValue);
+    }
+    setReadjustValues(initial);
+    setReadjustModal(true);
+  };
+
+  // Aplica novos valores de selectedMonth até dezembro (overrides), preservando
+  // os meses anteriores no valor base. Só grava receitas cujo valor mudou.
+  const applyReadjustment = async () => {
+    const batchItems = [];
+
+    for (const income of fixedIncomes) {
+      const raw = readjustValues[income.id];
+      if (raw === undefined || raw === '') continue;
+
+      const newValue = parseFloat(raw);
+      if (isNaN(newValue) || newValue < 0) continue;
+
+      // Valor atualmente vigente no mês selecionado — se não mudou, ignora
+      const currentValue = income.overrides?.[selectedMonth] !== undefined
+        ? income.overrides[selectedMonth]
+        : income.value;
+      if (newValue === currentValue) continue;
+
+      const newOverrides = { ...income.overrides };
+      for (let m = selectedMonth; m <= 11; m++) {
+        if (newValue === income.value) {
+          // Volta ao valor base: remove o override em vez de duplicá-lo
+          delete newOverrides[m];
+        } else {
+          newOverrides[m] = newValue;
+        }
+      }
+
+      batchItems.push({ collectionName: 'incomes', item: { ...income, overrides: newOverrides } });
+    }
+
+    if (batchItems.length === 0) {
+      toast.info('Nenhum valor alterado');
+      setReadjustModal(false);
+      return;
+    }
+
+    const result = await onBatchSave(batchItems);
+
+    if (result?.success === false) {
+      toast.error('Erro ao aplicar reajuste');
+      return;
+    }
+
+    setReadjustModal(false);
+    toast.success(
+      `Reajuste aplicado a ${batchItems.length} ${batchItems.length === 1 ? 'receita' : 'receitas'} a partir de ${MONTHS[selectedMonth]}`
+    );
   };
 
   return (
@@ -346,14 +449,26 @@ const IncomeView = ({
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="p-4 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300 flex justify-between items-center">
               <span>Receitas Fixas</span>
-              <button
-                onClick={() => setShowCategoryManager(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
-                title="Gerenciar categorias"
-              >
-                <Settings2 size={14} />
-                <span className="hidden sm:inline">Categorias</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={openReadjustModal}
+                  disabled={fixedIncomes.length === 0}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={`Aplicar novos valores a partir de ${MONTHS[selectedMonth]}`}
+                >
+                  <ArrowUp size={13} strokeWidth={2.5} />
+                  <DollarSign size={13} strokeWidth={2.5} />
+                  <span className="hidden sm:inline">Reajustar</span>
+                </button>
+                <button
+                  onClick={() => setShowCategoryManager(true)}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                  title="Gerenciar categorias"
+                >
+                  <Settings2 size={14} />
+                  <span className="hidden sm:inline">Categorias</span>
+                </button>
+              </div>
             </div>
             <div className="divide-y dark:divide-slate-700">
               <SortableList items={sortedFixedIncomes} onReorder={handleDragReorderFixed}>
@@ -417,7 +532,7 @@ const IncomeView = ({
                             ) : (
                               <span className="w-4 md:w-[18px]" />
                             )}
-                            <button onClick={() => handleDelete(item.id)} className="flex-shrink-0">
+                            <button onClick={() => handleDelete(item, 'fixed')} className="flex-shrink-0">
                               <Trash2
                                 size={14}
                                 className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500"
@@ -470,10 +585,12 @@ const IncomeView = ({
                             />
                           </div>
                           <div className="flex gap-2 md:gap-4 items-center flex-shrink-0">
-                            <span className="font-mono font-bold text-xs md:text-base text-blue-600 dark:text-blue-400">
-                              {formatCurrency(item.value)}
-                            </span>
-                            <button onClick={() => handleDelete(item.id)} className="flex-shrink-0">
+                            <EditableValue
+                              value={item.value}
+                              onSave={(val) => updateVariableValue(item, val)}
+                              className="w-16 md:w-24 bg-transparent text-right text-xs md:text-base font-mono font-bold outline-none text-blue-600 dark:text-blue-400"
+                            />
+                            <button onClick={() => handleDelete(item, 'variable')} className="flex-shrink-0">
                               <Trash2
                                 size={14}
                                 className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500"
@@ -503,6 +620,117 @@ const IncomeView = ({
           onSave={onSaveCategories}
           onClose={() => setShowCategoryManager(false)}
         />
+      )}
+
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Tratar receita</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[220px]">{deleteModal.item.name}</p>
+              </div>
+              <button onClick={() => setDeleteModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <X size={18} />
+              </button>
+            </div>
+
+            {deleteModal.type === 'fixed' ? (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Como deseja tratar esta receita?</p>
+                <button
+                  onClick={() => confirmDelete('this')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">Só em {MONTHS[selectedMonth]}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Zera o valor neste mês. Meses anteriores e posteriores não mudam.</div>
+                </button>
+                <button
+                  onClick={() => confirmDelete('future')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                >
+                  <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">Zerar de {MONTHS[selectedMonth]} em diante</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Zera do mês atual até dezembro. Meses anteriores mantidos.</div>
+                </button>
+                <button
+                  onClick={() => confirmDelete('all')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <div className="font-medium text-red-600 dark:text-red-400 text-sm">Todos os meses</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Remove o registro permanentemente de todos os meses.</div>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Esta receita extra aparece apenas em <strong>{MONTHS[selectedMonth]}</strong>. Confirma remover este lançamento?</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setDeleteModal(null)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={() => confirmDelete('all')} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {readjustModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-start p-5 border-b dark:border-slate-700">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Reajustar receitas</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Novos valores valem de <strong>{MONTHS[selectedMonth]}</strong> em diante. Meses anteriores ficam com o valor base.
+                </p>
+              </div>
+              <button onClick={() => setReadjustModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex-shrink-0 ml-2">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-2 flex-1">
+              {fixedIncomes.length === 0 ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Nenhuma receita fixa.</p>
+              ) : (
+                fixedIncomes.map((income) => (
+                  <div key={income.id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate">{income.name}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">Base: {formatCurrency(income.value)}</div>
+                    </div>
+                    <input
+                      type="number"
+                      value={readjustValues[income.id] ?? ''}
+                      onChange={(e) => setReadjustValues({ ...readjustValues, [income.id]: e.target.value })}
+                      className="w-28 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono text-sm text-slate-800 dark:text-slate-200"
+                      placeholder="Novo valor"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end p-5 border-t dark:border-slate-700">
+              <button
+                onClick={() => setReadjustModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={applyReadjustment}
+                disabled={fixedIncomes.length === 0}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aplicar a partir de {MONTHS[selectedMonth]}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

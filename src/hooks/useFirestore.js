@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   collection,
   doc,
@@ -14,7 +14,7 @@ import { db, appId, getUserYearPath, getUserLegacyPath } from '../services/fireb
 /**
  * Hook para gerenciar coleções do Firestore (com namespace de ano)
  */
-export const useCollection = (user, collectionName, seedData = null, year = null) => {
+export const useCollection = (user, collectionName, _seedData = null, year = null) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,10 +64,15 @@ export const useDocument = (user, docPath, defaultValue = null, year = null) => 
   const [data, setData] = useState(defaultValue);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const defaultValueRef = useRef(defaultValue);
+
+  useEffect(() => {
+    defaultValueRef.current = defaultValue;
+  }, [defaultValue]);
 
   useEffect(() => {
     if (!user || !year) {
-      setData(defaultValue);
+      setData(defaultValueRef.current);
       setLoading(false);
       return;
     }
@@ -86,7 +91,7 @@ export const useDocument = (user, docPath, defaultValue = null, year = null) => 
           // Documento não existe — usa defaultValue apenas localmente,
           // sem gravar no Firestore (evita sobrescrever dados reais
           // que ainda não chegaram do servidor)
-          setData(defaultValue);
+          setData(defaultValueRef.current);
         }
         setLoading(false);
         setError(null);
@@ -107,7 +112,7 @@ export const useDocument = (user, docPath, defaultValue = null, year = null) => 
 /**
  * Hook lazy para coleções - só cria listener quando enabled=true (com namespace de ano)
  */
-export const useLazyCollection = (user, collectionName, enabled, seedData = null, year = null) => {
+export const useLazyCollection = (user, collectionName, enabled, _seedData = null, year = null) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -157,10 +162,15 @@ export const useLazyDocument = (user, docPath, enabled, defaultValue = null, yea
   const [data, setData] = useState(defaultValue);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const defaultValueRef = useRef(defaultValue);
+
+  useEffect(() => {
+    defaultValueRef.current = defaultValue;
+  }, [defaultValue]);
 
   useEffect(() => {
     if (!user || !enabled || !year) {
-      setData(defaultValue);
+      setData(defaultValueRef.current);
       setLoading(false);
       return;
     }
@@ -176,7 +186,7 @@ export const useLazyDocument = (user, docPath, enabled, defaultValue = null, yea
         if (docSnap.exists()) {
           setData(docSnap.data().data);
         } else {
-          setData(defaultValue);
+          setData(defaultValueRef.current);
         }
         setLoading(false);
         setError(null);
@@ -229,7 +239,7 @@ export const useFirestoreOperations = (user, year = null) => {
             docRef = doc(collection(db, ...basePath, collectionName));
           }
 
-          const { id, ...data } = item;
+          const { id: _id, ...data } = item;
           batch.set(docRef, data);
         }
 
@@ -267,7 +277,7 @@ export const useFirestoreOperations = (user, year = null) => {
         docRef = doc(collection(db, ...basePath, collectionName));
       }
 
-      const { id, ...data } = item;
+      const { id: _id, ...data } = item;
       await setDoc(docRef, data);
 
       return { success: true };
@@ -479,6 +489,12 @@ export const migrateToYearNamespace = async (userId, targetYear = 2026) => {
   }
 };
 
+// Promove o valor vigente em dezembro (último mês do ano) como novo valor base
+// do ano seguinte. Assim qualquer reajuste aplicado durante o ano persiste como
+// base nos anos futuros ao criar um novo ano via copyYearData.
+const shouldPromoteDecemberOverride = (overrides) =>
+  Boolean(overrides) && overrides[11] !== undefined;
+
 /**
  * Copia dados de um ano para outro (para "Iniciar Novo Ano")
  */
@@ -520,8 +536,13 @@ export const copyYearData = async (userId, fromYear, toYear) => {
         if (newData.doneStatus) {
           newData.doneStatus = Array(12).fill(false);
         }
-        // Limpar overrides
-        if (newData.overrides) {
+        // Promover o último valor vigente (override de dezembro, se houver)
+        // como novo valor base do ano seguinte. Assim um reajuste aplicado
+        // a partir de um mês deste ano persiste como base nos anos futuros.
+        if (newData.overrides && Object.keys(newData.overrides).length > 0) {
+          if (shouldPromoteDecemberOverride(newData.overrides)) {
+            newData.value = newData.overrides[11];
+          }
           newData.overrides = {};
         }
 
@@ -557,7 +578,13 @@ export const copyYearData = async (userId, fromYear, toYear) => {
           continue;
         }
 
-        const newData = { ...data, overrides: {} };
+        const newData = { ...data };
+        // Promover override de dezembro como novo valor base (reajuste persiste)
+        if (newData.overrides && Object.keys(newData.overrides).length > 0
+            && shouldPromoteDecemberOverride(newData.overrides)) {
+          newData.value = newData.overrides[11];
+        }
+        newData.overrides = {};
         if (newData.paidStatus) {
           newData.paidStatus = Array(12).fill(false);
         }
@@ -576,7 +603,6 @@ export const copyYearData = async (userId, fromYear, toYear) => {
     // Copiar categorias e configurações do cartão
     const catDocs = ['expense_categories', 'income_categories', 'card_settings'];
     for (const catDoc of catDocs) {
-      const fromDocRef = doc(db, ...fromPath, 'general', catDoc);
       // Ler via getDocs da subcoleção general
       const generalSnap = await getDocs(collection(db, ...fromPath, 'general'));
       const catSnap = generalSnap.docs.find(d => d.id === catDoc);

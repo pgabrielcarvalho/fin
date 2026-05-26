@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, CheckCircle2, Circle, Trash2, RotateCcw, CreditCard, TrendingUp, TrendingDown, Layers, Settings2, Sparkles, ChevronDown, ChevronUp, X, ArrowUp, DollarSign } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 
 import MonthlyNotes from './MonthlyNotes';
@@ -43,6 +43,9 @@ const MonthlyExpensesView = ({
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
+  const [deleteModal, setDeleteModal] = useState(null); // { item }
+  const [readjustModal, setReadjustModal] = useState(false);
+  const [readjustValues, setReadjustValues] = useState({}); // { [expenseId]: novoValorString }
 
   const finalCardTotal = getMonthlyCardTotal(creditCardExpenses, invoiceTotals, selectedMonth, selectedYear);
 
@@ -61,7 +64,7 @@ const MonthlyExpensesView = ({
       totalExpenses,
       balance
     };
-  }, [selectedMonth, incomes, expenses, creditCardExpenses, invoiceTotals]);
+  }, [selectedMonth, selectedYear, incomes, expenses, creditCardExpenses, invoiceTotals]);
 
   // Usar o hook de reordenação
   const { sortedItems: sortedExpenses } = useReorder(expenses, (updatedItem) =>
@@ -152,16 +155,46 @@ const MonthlyExpensesView = ({
     toast.info('Valor restaurado');
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta despesa?')) {
-      const result = await onDelete('expenses', id);
-      if (result.success) {
-        toast.success('Despesa excluída');
-      }
+  const handleDelete = (item) => {
+    if (item.type === 'eventual') {
+      setDeleteModal({ item, eventual: true });
+    } else {
+      setDeleteModal({ item, eventual: false });
     }
   };
 
-  const handleCopyFromMonth = async (sourceMonth) => {
+  const saveExpenseOverrides = async (item, overrides, successMessage) => {
+    try {
+      const result = await onSave('expenses', { ...item, overrides });
+      if (result?.success === false) {
+        toast.error('Erro ao salvar alteração');
+        return;
+      }
+      toast.success(successMessage);
+    } catch {
+      toast.error('Erro ao salvar alteração');
+    }
+  };
+
+  const confirmDelete = async (mode) => {
+    const { item, eventual } = deleteModal;
+    setDeleteModal(null);
+
+    if (eventual || mode === 'all') {
+      const result = await onDelete('expenses', item.id);
+      if (result.success) toast.success('Despesa excluída');
+      else toast.error('Erro ao excluir despesa');
+    } else if (mode === 'this') {
+      const newOverrides = { ...item.overrides, [selectedMonth]: 0 };
+      await saveExpenseOverrides(item, newOverrides, `Despesa zerada em ${MONTHS[selectedMonth]}`);
+    } else if (mode === 'future') {
+      const newOverrides = { ...item.overrides };
+      for (let m = selectedMonth; m <= 11; m++) newOverrides[m] = 0;
+      await saveExpenseOverrides(item, newOverrides, `Despesa zerada de ${MONTHS[selectedMonth]} em diante`);
+    }
+  };
+
+  const _handleCopyFromMonth = async (sourceMonth) => {
     const batchItems = [];
 
     for (const expense of expenses) {
@@ -192,6 +225,72 @@ const MonthlyExpensesView = ({
       delete updated.categoryId;
     }
     await onSave('expenses', updated);
+  };
+
+  // Despesas fixas (alvo do reajuste) — sem type ou type 'fixed'
+  const fixedExpenses = useMemo(
+    () => expenses.filter(e => !e.type || e.type === 'fixed'),
+    [expenses]
+  );
+
+  const openReadjustModal = () => {
+    const initial = {};
+    for (const expense of fixedExpenses) {
+      const currentValue = expense.overrides?.[selectedMonth] !== undefined
+        ? expense.overrides[selectedMonth]
+        : expense.value;
+      initial[expense.id] = String(currentValue);
+    }
+    setReadjustValues(initial);
+    setReadjustModal(true);
+  };
+
+  // Aplica novos valores de selectedMonth até dezembro (overrides), preservando
+  // os meses anteriores no valor base. Só grava despesas cujo valor mudou.
+  const applyReadjustment = async () => {
+    const batchItems = [];
+
+    for (const expense of fixedExpenses) {
+      const raw = readjustValues[expense.id];
+      if (raw === undefined || raw === '') continue;
+
+      const newValue = parseFloat(raw);
+      if (isNaN(newValue) || newValue < 0) continue;
+
+      const currentValue = expense.overrides?.[selectedMonth] !== undefined
+        ? expense.overrides[selectedMonth]
+        : expense.value;
+      if (newValue === currentValue) continue;
+
+      const newOverrides = { ...expense.overrides };
+      for (let m = selectedMonth; m <= 11; m++) {
+        if (newValue === expense.value) {
+          delete newOverrides[m];
+        } else {
+          newOverrides[m] = newValue;
+        }
+      }
+
+      batchItems.push({ collectionName: 'expenses', item: { ...expense, overrides: newOverrides } });
+    }
+
+    if (batchItems.length === 0) {
+      toast.info('Nenhum valor alterado');
+      setReadjustModal(false);
+      return;
+    }
+
+    const result = await onBatchSave(batchItems);
+
+    if (result?.success === false) {
+      toast.error('Erro ao aplicar reajuste');
+      return;
+    }
+
+    setReadjustModal(false);
+    toast.success(
+      `Reajuste aplicado a ${batchItems.length} ${batchItems.length === 1 ? 'despesa' : 'despesas'} a partir de ${MONTHS[selectedMonth]}`
+    );
   };
 
   // Agrupar despesas por categoria
@@ -330,7 +429,7 @@ const MonthlyExpensesView = ({
           ) : (
             <span className="w-4 md:w-[18px]" />
           )}
-          <button onClick={() => handleDelete(expense.id)} className="flex-shrink-0">
+          <button onClick={() => handleDelete(expense)} className="flex-shrink-0">
             <Trash2 size={14} className="md:w-[18px] md:h-[18px] text-slate-300 hover:text-red-500" />
           </button>
         </div>
@@ -502,6 +601,16 @@ const MonthlyExpensesView = ({
           <span>Checklist de Pagamentos</span>
           <div className="flex items-center gap-2">
             <button
+              onClick={openReadjustModal}
+              disabled={fixedExpenses.length === 0}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title={`Aplicar novos valores a partir de ${MONTHS[selectedMonth]}`}
+            >
+              <ArrowUp size={13} strokeWidth={2.5} />
+              <DollarSign size={13} strokeWidth={2.5} />
+              <span className="hidden sm:inline">Reajustar</span>
+            </button>
+            <button
               onClick={() => setGroupByCategory(!groupByCategory)}
               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                 groupByCategory
@@ -591,6 +700,117 @@ const MonthlyExpensesView = ({
           onSave={onSaveCategories}
           onClose={() => setShowCategoryManager(false)}
         />
+      )}
+
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Tratar despesa</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[220px]">{deleteModal.item.name}</p>
+              </div>
+              <button onClick={() => setDeleteModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <X size={18} />
+              </button>
+            </div>
+
+            {deleteModal.eventual ? (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Esta despesa é eventual e aparece apenas em <strong>{MONTHS[deleteModal.item.month]}</strong>. Confirma remover este lançamento?</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setDeleteModal(null)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={() => confirmDelete('all')} className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Como deseja tratar esta despesa?</p>
+                <button
+                  onClick={() => confirmDelete('this')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">Só em {MONTHS[selectedMonth]}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Zera o valor neste mês. Outros meses não mudam.</div>
+                </button>
+                <button
+                  onClick={() => confirmDelete('future')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                >
+                  <div className="font-medium text-slate-800 dark:text-slate-200 text-sm">Zerar de {MONTHS[selectedMonth]} em diante</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Zera do mês atual até dezembro. Meses anteriores mantidos.</div>
+                </button>
+                <button
+                  onClick={() => confirmDelete('all')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <div className="font-medium text-red-600 dark:text-red-400 text-sm">Todos os meses</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Remove o registro permanentemente de todos os meses.</div>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {readjustModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-start p-5 border-b dark:border-slate-700">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Reajustar despesas fixas</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Novos valores valem de <strong>{MONTHS[selectedMonth]}</strong> em diante. Meses anteriores ficam com o valor base.
+                </p>
+              </div>
+              <button onClick={() => setReadjustModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex-shrink-0 ml-2">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-2 flex-1">
+              {fixedExpenses.length === 0 ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Nenhuma despesa fixa.</p>
+              ) : (
+                fixedExpenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate">{expense.name}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500">Base: {formatCurrency(expense.value)}</div>
+                    </div>
+                    <input
+                      type="number"
+                      value={readjustValues[expense.id] ?? ''}
+                      onChange={(e) => setReadjustValues({ ...readjustValues, [expense.id]: e.target.value })}
+                      className="w-28 p-2 rounded bg-slate-50 dark:bg-slate-700 border dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-right font-mono text-sm text-slate-800 dark:text-slate-200"
+                      placeholder="Novo valor"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end p-5 border-t dark:border-slate-700">
+              <button
+                onClick={() => setReadjustModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={applyReadjustment}
+                disabled={fixedExpenses.length === 0}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aplicar a partir de {MONTHS[selectedMonth]}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
