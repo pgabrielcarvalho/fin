@@ -1,4 +1,3 @@
-import React from 'react';
 import { Wallet, Loader2 } from 'lucide-react';
 
 const LoginScreen = ({ onLogin, loading }) => {

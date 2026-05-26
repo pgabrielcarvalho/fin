@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, CheckCircle2, Circle, Trash2, Briefcase } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import MonthlyNotes from './MonthlyNotes';

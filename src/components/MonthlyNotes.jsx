@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Save } from 'lucide-react';
 
 const MonthlyNotes = ({ selectedMonth, notes, onSave, title = "Anotações do Mês" }) => {

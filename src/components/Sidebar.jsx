@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   PieChart,
   Wallet,
@@ -177,14 +177,6 @@ const Sidebar = ({
     }
 
     // Sem swipe: usar CSS classes (isOpen controla via classes)
-    return {};
-  };
-
-  // Overlay opacity proporcional ao swipe
-  const getOverlayStyle = () => {
-    if (isSwiping) {
-      return { opacity: swipeOffset / SIDEBAR_WIDTH };
-    }
     return {};
   };
 

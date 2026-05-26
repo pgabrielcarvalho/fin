@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import MonthTabs from './MonthTabs';
 import MonthlyNotes from './MonthlyNotes';
@@ -41,7 +41,7 @@ const Dashboard = ({
       totalExpenses,
       balance
     };
-  }, [selectedMonth, incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary]);
+  }, [selectedMonth, selectedYear, incomes, expenses, creditCardExpenses, invoiceTotals, hideExtraordinary]);
 
   // Calcular info das extraordinárias excluídas (apenas itens ativos no mês)
   const extraInfo = useMemo(() => {
@@ -67,7 +67,7 @@ const Dashboard = ({
     if (count === 0 && excludedValue === 0) return null;
 
     return { count, excludedValue };
-  }, [hideExtraordinary, incomes, expenses, creditCardExpenses, invoiceTotals, selectedMonth]);
+  }, [hideExtraordinary, incomes, expenses, creditCardExpenses, invoiceTotals, selectedMonth, selectedYear]);
 
   return (
     <div className="space-y-6 animate-fade-in">

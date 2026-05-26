@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -140,7 +140,7 @@ const DONUT_COLORS = [
   '#06b6d4', '#84cc16', '#e11d48', '#7c3aed'
 ];
 
-export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, invoiceTotals, selectedMonth, categories = [], excludeExtraordinary = false, selectedYear }) => {
+export const ConsolidatedCategoryDonut = ({ expenses, creditCardExpenses, selectedMonth, categories = [], excludeExtraordinary = false, selectedYear }) => {
   const categoryTotals = {};
 
   // Despesas fixas/eventuais

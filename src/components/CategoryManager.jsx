@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { SortableList, SortableItem, DragHandle } from './SortableList';

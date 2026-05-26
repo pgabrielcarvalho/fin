@@ -1,6 +1,8 @@
 {
+  "regions": ["gru1"],
   "rewrites": [
-    { "source": "/api/agent/:path*", "destination": "/api/agent?p=:path*" },
-    { "source": "/((?!api/).*)",     "destination": "/index.html" }
+    { "source": "/api/agent/:path*",      "destination": "/api/agent?p=:path*" },
+    { "source": "/api/djen-proxy/:path*", "destination": "/api/djen-proxy?p=:path*" },
+    { "source": "/((?!api/).*)",          "destination": "/index.html" }
   ]
 }

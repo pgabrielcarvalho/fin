@@ -1,4 +1,3 @@
-import React from 'react';
 import { MONTHS } from '../utils/formatters';
 
 const MonthSelector = ({ selectedMonth, onChange }) => {

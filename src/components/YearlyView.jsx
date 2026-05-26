@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { getYearlyData } from '../services/calculations';

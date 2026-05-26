@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Lock, Delete, ShieldCheck } from 'lucide-react';
 
 const PIN_LENGTH = 4;

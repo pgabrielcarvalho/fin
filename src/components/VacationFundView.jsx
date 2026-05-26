@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown, ChevronDown, ChevronUp, FolderPlus, CheckCircle2, Circle } from 'lucide-react';
 import MonthlyNotes from './MonthlyNotes';
 import { SortableList, SortableItem, DragHandle } from './SortableList';
@@ -74,7 +74,7 @@ const VacationFundView = ({ vacationFund, onSave, onBatchSave, onDelete, notes, 
   const { handleDragReorder: handleDragReorderIncomes } = useDragReorder('vacation_incomes', sortedIncomes, onBatchSave);
 
   // Agrupar saídas em projetos, sub-itens e avulsos
-  const { projects, subItemsByProject, standaloneItems, topLevelItems } = useMemo(() => {
+  const { subItemsByProject, topLevelItems } = useMemo(() => {
     const projects = [];
     const subItemsByProject = {};
     const standaloneItems = [];

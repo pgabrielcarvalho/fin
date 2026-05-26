@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Hooks
@@ -52,7 +52,7 @@ const App = () => {
     selectedYear,
     setSelectedYear,
     availableYears,
-    migrating,
+
     startNewYear
   } = useYearManager(user);
 

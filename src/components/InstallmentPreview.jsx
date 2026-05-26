@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatCurrency, MONTHS } from '../utils/formatters';
 
 const InstallmentPreview = ({ totalValue, installments, startMonth, currentYear }) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Copy, ChevronDown } from 'lucide-react';
 import { MONTHS } from '../utils/formatters';
 

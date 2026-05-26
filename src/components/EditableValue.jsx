@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 /**
  * Input numérico com edição local.
@@ -12,10 +12,10 @@ import React, { useState, useRef, useEffect } from 'react';
  * - emptyAsZero: se true, mostra campo vazio quando valor é 0 (útil para campos opcionais)
  */
 const EditableValue = ({ value, onSave, className = '', placeholder, emptyAsZero = false }) => {
-  const formatDisplay = (v) => {
+  const formatDisplay = useCallback((v) => {
     if (emptyAsZero && (v === 0 || v === '0')) return '';
     return String(v);
-  };
+  }, [emptyAsZero]);
 
   const [localValue, setLocalValue] = useState(formatDisplay(value));
   const [isEditing, setIsEditing] = useState(false);
@@ -26,7 +26,7 @@ const EditableValue = ({ value, onSave, className = '', placeholder, emptyAsZero
     if (!isEditing) {
       setLocalValue(formatDisplay(value));
     }
-  }, [value, isEditing]);
+  }, [value, isEditing, formatDisplay]);
 
   const handleFocus = () => {
     setIsEditing(true);

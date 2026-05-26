@@ -163,7 +163,7 @@ export const getVacationTotals = (vacationFund) => {
  * Determina o mês da fatura com base no dia de fechamento do cartão.
  * Se hoje > dia de fechamento do mês atual, a compra vai para o mês seguinte.
  */
-export const getDefaultInvoiceMonth = (closingDates = [], currentYear = new Date().getFullYear()) => {
+export const getDefaultInvoiceMonth = (closingDates = [], _currentYear = new Date().getFullYear()) => {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentDay = today.getDate();

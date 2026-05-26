@@ -1,4 +1,3 @@
-import React from 'react';
 
 const TypeSelector = ({ options, value, onChange, activeColor = 'indigo' }) => {
   const colorMap = {

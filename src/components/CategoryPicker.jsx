@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 const CategoryPicker = ({ categoryId, categories = [], onChange }) => {

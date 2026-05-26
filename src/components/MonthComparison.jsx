@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowUpDown, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { MONTHS, formatCurrency } from '../utils/formatters';
 import { getMonthlyIncome, getMonthlyFixedExpenses, getMonthlyCardTotal, getMonthlyBalance } from '../services/calculations';

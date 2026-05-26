@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Download, FileJson, FileText, Printer, Upload, X } from 'lucide-react';
+import { useState } from 'react';
+import { FileJson, FileText, Printer, Upload, X } from 'lucide-react';
 import { MONTHS } from '../utils/formatters';
 
 const ExportMenu = ({
@@ -7,8 +7,7 @@ const ExportMenu = ({
   onClose,
   onExport,
   onImport,
-  selectedMonth,
-  onMonthChange
+  selectedMonth
 }) => {
   const [exportType, setExportType] = useState('current'); // 'current' ou 'annual'
 
